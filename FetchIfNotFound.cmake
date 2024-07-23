@@ -13,35 +13,35 @@ if(NOT COMMAND FetchContent_Declare OR
   include(FetchContent)
 endif()
 
-# fetch_if_not_found(PKG_NAME FP_OPTIONS FC_OPTIONS)
+# fetch_if_not_found(pkg_name fp_options fc_options)
 #   Extends cmake 3.24 integration of find_package into FetchContent to work
 #     with lower versions
-#   On success, sets ${PKG_NAME}_FOUND or <lowercase PKG_NAME>_POPULATED
+#   On success, sets ${pkg_name}_FOUND or <lowercase pkg_name>_POPULATED
 #
-#   PKG_NAME   (string): package name
-#   FP_OPTIONS (list):   find_package args beyond first
-#   FC_OPTIONS (list):   FetchContent_Declare(ExternalProject_Add) args beyond first
+#   pkg_name   (string): package name
+#   fp_options (list):   find_package args beyond first
+#   fc_options (list):   FetchContent_Declare(ExternalProject_Add) args beyond first
 #
 # !!! This relies on scripts used by find_package creating INTERFACE library
 #   targets with the same names (including namespaces, if any,) as ALIAS targets
 #   created by FetchContent
 macro(fetch_if_not_found
-    PKG_NAME FP_OPTIONS FC_OPTIONS
+    pkg_name fp_options fc_options
   )
   if ("${CMAKE_VERSION}" VERSION_GREATER_EQUAL 3.24)
     if(SKIP_FIND_BEFORE_FETCH)
-      FetchContent_Declare(${PKG_NAME} ${FC_OPTIONS})
+      FetchContent_Declare(${pkg_name} ${fc_options})
     else()
-      FetchContent_Declare(${PKG_NAME} ${FC_OPTIONS} FIND_PACKAGE_ARGS ${FP_OPTIONS})
+      FetchContent_Declare(${pkg_name} ${fc_options} FIND_PACKAGE_ARGS ${fp_options})
     endif()
-    FetchContent_MakeAvailable(${PKG_NAME})
+    FetchContent_MakeAvailable(${pkg_name})
   else()
     if(NOT SKIP_FIND_BEFORE_FETCH)
-      find_package(${PKG_NAME} ${FP_OPTIONS})
+      find_package(${pkg_name} ${fp_options})
     endif()
-    if(NOT ${PKG_NAME}_FOUND)
-      FetchContent_Declare(${PKG_NAME} ${FC_OPTIONS})
-      FetchContent_MakeAvailable(${PKG_NAME})
+    if(NOT ${pkg_name}_FOUND)
+      FetchContent_Declare(${pkg_name} ${fc_options})
+      FetchContent_MakeAvailable(${pkg_name})
     endif()
   endif()
 endmacro()
