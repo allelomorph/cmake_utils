@@ -1,5 +1,5 @@
 # newest features used: FetchContent v3.11, FetchContent_MakeAvailable v3.14
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.14)
 
 include_guard(DIRECTORY)
 
