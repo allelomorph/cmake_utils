@@ -13,19 +13,21 @@ if(NOT COMMAND FetchContent_Declare OR
   include(FetchContent)
 endif()
 
-# find_package integration in FetchContent requires cmake 3.24:
-#   https://cmake.org/cmake/help/v3.27/guide/using-dependencies/index.html#fetchcontent-and-find-package-integration
-# fetch_if_not_found roughly emulates this behavior for lower versions
-#   of cmake
+# fetch_if_not_found(PKG_NAME FP_OPTIONS FC_OPTIONS)
+#   Extends cmake 3.24 integration of find_package into FetchContent to work
+#     with lower versions
+#   On success, sets ${PKG_NAME}_FOUND or <lowercase PKG_NAME>_POPULATED
+#
+#   PKG_NAME   (string): package name
+#   FP_OPTIONS (list):   find_package args beyond first
+#   FC_OPTIONS (list):   FetchContent_Declare(ExternalProject_Add) args beyond first
+#
 # !!! This relies on scripts used by find_package creating INTERFACE library
 #   targets with the same names (including namespaces, if any,) as ALIAS targets
 #   created by FetchContent
 macro(fetch_if_not_found
-    PKG_NAME    # expects string: package name
-    FP_OPTIONS  # expects list:   find_package args beyond first
-    FC_OPTIONS  # expects list:   FetchContent_Declare(ExternalProject_Add)
-                #                   args beyond first
-              )
+    PKG_NAME FP_OPTIONS FC_OPTIONS
+  )
   if ("${CMAKE_VERSION}" VERSION_GREATER_EQUAL 3.24)
     if(SKIP_FIND_BEFORE_FETCH)
       FetchContent_Declare(${PKG_NAME} ${FC_OPTIONS})
@@ -42,6 +44,4 @@ macro(fetch_if_not_found
       FetchContent_MakeAvailable(${PKG_NAME})
     endif()
   endif()
-  # presence of package can now be tested by:
-  #   `if(<pkg_name>_FOUND OR <lowercase pkg_name>_POPULATED)`
 endmacro()

@@ -1,7 +1,8 @@
 # TBD re-evaluate supported versions
 cmake_minimum_required(VERSION 3.16)
 
-# no need for include_guard, as false condition causes fatal error
+# no real need for include_guard, as false condition causes fatal error
+include_guard(DIRECTORY)
 
 if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
   message(FATAL_ERROR

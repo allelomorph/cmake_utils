@@ -3,8 +3,14 @@ cmake_minimum_required(VERSION 3.16)
 
 include_guard(DIRECTORY)
 
-# Functions adapted from https://stackoverflow.com/questions/32183975
+# Functions below adapted from https://stackoverflow.com/q/32183975
 
+# get_cmake_property_list()
+#   finds all available properties for targets in the current configuration, and
+#     exports to the parent scope the lists CMAKE_PROPERTY_LIST (properties on
+#     non-interface targets) and CMAKE_WHITELISTED_PROPERTY_LIST (properties on
+#     interface targets)
+#
 function(get_cmake_property_list)
   # Get all propreties supported by current cmake version
   execute_process(COMMAND
@@ -83,8 +89,15 @@ function(get_cmake_property_list)
   set(CMAKE_WHITELISTED_PROPERTY_LIST ${cmake_whitelisted_property_list} PARENT_SCOPE)
 endfunction(get_cmake_property_list)
 
+# build CMAKE_PROPERTY_LIST and CMAKE_WHITELISTED_PROPERTY_LIST for use by
+#   print_target_properties
 get_cmake_property_list()
 
+# print_target_properties(target)
+#   debug print of all properties and their values for a given target
+#
+#   target (string): target to test
+#
 function(print_target_properties target)
   if(NOT TARGET ${target})
     return()
