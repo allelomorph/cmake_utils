@@ -57,7 +57,8 @@ fetch_if_not_found(Catch2 "${FP_OPTIONS}" "${FC_OPTIONS}")
 
 # _CATCH_VERSION_MAJOR intended to be set as compile definition for test targets,
 #   this allows for selective includes to accommodate differences in v2 and v3
-#   (leading underscore to prevent shadowing CATCH_VERSION_MAJOR)
+#   (leading underscore to prevent shadowing CATCH_VERSION_MAJOR, which may be
+#   defined by Catch header inclusions)
 if(DEFINED CATCH_VERSION_MAJOR)
   set(_CATCH_VERSION_MAJOR "${CATCH_VERSION_MAJOR}")
 else()
@@ -70,18 +71,18 @@ if(NOT _CATCH_VERSION_MAJOR)
 endif()
 unset(CATCH_DEFAULT_VERSION)
 
-# adding path to Catch.cmake to allow `include(Catch)`, see:
-#   - https://github.com/catchorg/Catch2/blob/v3.4.0/docs/cmake-integration.md#automatic-test-registration
+# adding path to Catch.cmake to allow `include(Catch)`, see above links on
+#   cmake integration
 if(DEFINED catch2_SOURCE_DIR)      # catch2_POPULATED
-  set(CATCH_SOURCE_DIR_PREFIX "${catch2_SOURCE_DIR}")
+  set(CATCH_SOURCE_DIR "${catch2_SOURCE_DIR}")
 elseif(DEFINED Catch2_SOURCE_DIR)  # Catch2_FOUND
-  set(CATCH_SOURCE_DIR_PREFIX "${Catch2_SOURCE_DIR}")
+  set(CATCH_SOURCE_DIR "${Catch2_SOURCE_DIR}")
 else()
   message(FATAL_ERROR "Could not find Catch2 source directory")
 endif()
 if(_CATCH_VERSION_MAJOR EQUAL 2)
-  list(APPEND CMAKE_MODULE_PATH "${CATCH_SOURCE_DIR_PREFIX}/contrib")
+  list(APPEND CMAKE_MODULE_PATH "${CATCH_SOURCE_DIR}/contrib")
 else()
-  list(APPEND CMAKE_MODULE_PATH "${CATCH_SOURCE_DIR_PREFIX}/extras")
+  list(APPEND CMAKE_MODULE_PATH "${CATCH_SOURCE_DIR}/extras")
 endif()
-unset(CATCH_SOURCE_DIR_PREFIX)
+unset(CATCH_SOURCE_DIR)
