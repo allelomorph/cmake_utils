@@ -97,7 +97,7 @@ macro(set_default_SDL_package_versions SDL_version_major)
       default_package_version("sdl2_net"     SDL2_NET_DEFAULT_PKG_VER)
       default_package_version("sdl2_ttf"     SDL2_TTF_DEFAULT_PKG_VER)
     endif()
-  elseif(${PACKAGE_MANAGER_BINARY} MATCHES "/aptitude$")
+  elseif(${PACKAGE_MANAGER_BINARY} MATCHES "/emerge")
     #
     # Gentoo: portage (emerge)
     #
@@ -114,7 +114,7 @@ macro(set_default_SDL_package_versions SDL_version_major)
       default_package_version("sdl2-net"   SDL2_NET_DEFAULT_PKG_VER)
       default_package_version("sdl2-ttf"   SDL2_TTF_DEFAULT_PKG_VER)
     endif()
-  elseif(${PACKAGE_MANAGER_BINARY} MATCHES "/aptitude$")
+  elseif(${PACKAGE_MANAGER_BINARY} MATCHES "/zypper$")
     #
     # openSUSE: zypper [> rpm]
     #
