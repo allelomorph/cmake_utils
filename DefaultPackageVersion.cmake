@@ -251,10 +251,14 @@ for JSON string parsing (of homebrew output)")
   #
   # Gentoo: portage (emerge)
   #
+  # `emerge --pretend --quiet --columns "${package}"` has more stable, parseable
+  #    output, but may ignore --quiet/--columns if it fails due to circular
+  #    dependency, which breaks parsing
   if(${PACKAGE_MANAGER_BINARY} MATCHES "/emerge$")
     execute_process(
-      COMMAND ${PACKAGE_MANAGER_BINARY} --pretend --quiet --columns "${package}"
-      COMMAND ${AWK_BINARY} "{print $3}"
+      COMMAND ${PACKAGE_MANAGER_BINARY} --search "%^${package}$"
+      COMMAND ${GREP_BINARY} "Latest version available: "
+      COMMAND ${AWK_BINARY} "{print $4}"
       COMMAND ${SORT_BINARY} -Vr
       COMMAND ${HEAD_BINARY} -n1
       ERROR_FILE /dev/null
