@@ -149,6 +149,7 @@ for JSON string parsing (of homebrew output)")
       COMMAND ${PACKAGE_MANAGER_BINARY} search --display-format "%V" "^${package}$"
       COMMAND ${SORT_BINARY} -Vr
       COMMAND ${HEAD_BINARY} -n1
+      ERROR_FILE /dev/null
       OUTPUT_VARIABLE CMD_OUTPUT_LINE
     )
     if(CMD_OUTPUT_LINE)
@@ -194,6 +195,7 @@ for JSON string parsing (of homebrew output)")
       COMMAND ${AWK_BINARY} "{print $2}"
       COMMAND ${SORT_BINARY} -Vr
       COMMAND ${HEAD_BINARY} -n1
+      ERROR_FILE /dev/null
       OUTPUT_VARIABLE CMD_OUTPUT_LINE
     )
     if(CMD_OUTPUT_LINE)
@@ -212,6 +214,7 @@ for JSON string parsing (of homebrew output)")
       COMMAND ${AWK_BINARY} '{print $2}'
       COMMAND ${SORT_BINARY} -Vr
       COMMAND ${HEAD_BINARY} -n1
+      ERROR_FILE /dev/null
       OUTPUT_VARIABLE CMD_OUTPUT_LINE
     )
     if(CMD_OUTPUT_LINE)
@@ -237,6 +240,7 @@ for JSON string parsing (of homebrew output)")
       COMMAND ${AWK_BINARY} "{print $2}"
       COMMAND ${SORT_BINARY} -Vr
       COMMAND ${HEAD_BINARY} -n1
+      ERROR_FILE /dev/null
       OUTPUT_VARIABLE CMD_OUTPUT_LINE
     )
     if(CMD_OUTPUT_LINE)
