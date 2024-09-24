@@ -191,7 +191,7 @@ for JSON string parsing (of homebrew output)")
   if(${PACKAGE_MANAGER_BINARY} MATCHES "/dnf$")
     execute_process(
       COMMAND ${PACKAGE_MANAGER_BINARY} list "${package}"
-      COMMAND ${GREP_BINARY} -E "^${package}\."
+      COMMAND ${GREP_BINARY} -E "^${package}\\."
       COMMAND ${AWK_BINARY} "{print $2}"
       COMMAND ${SORT_BINARY} -Vr
       COMMAND ${HEAD_BINARY} -n1
@@ -210,7 +210,7 @@ for JSON string parsing (of homebrew output)")
   if(${PACKAGE_MANAGER_BINARY} MATCHES "/yum$")
     execute_process(
       COMMAND ${PACKAGE_MANAGER_BINARY} list "${package}"
-      COMMAND ${GREP_BINARY} -E "^${package}\."
+      COMMAND ${GREP_BINARY} -E "^${package}\\."
       COMMAND ${AWK_BINARY} '{print $2}'
       COMMAND ${SORT_BINARY} -Vr
       COMMAND ${HEAD_BINARY} -n1
