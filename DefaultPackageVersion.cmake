@@ -211,7 +211,7 @@ for JSON string parsing (of homebrew output)")
     execute_process(
       COMMAND ${PACKAGE_MANAGER_BINARY} list "${package}"
       COMMAND ${GREP_BINARY} -E "^${package}\\."
-      COMMAND ${AWK_BINARY} '{print $2}'
+      COMMAND ${AWK_BINARY} "{print $2}"
       COMMAND ${SORT_BINARY} -Vr
       COMMAND ${HEAD_BINARY} -n1
       ERROR_FILE /dev/null
