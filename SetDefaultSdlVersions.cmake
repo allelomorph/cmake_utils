@@ -16,7 +16,14 @@ endif()
 
 # set_default_SDL_versions(SDL_version_major)
 #   queries system package manager to get default versions of the SDL core and
-#   extension packages
+#   extension packages, setting the following variables in <major>.<minor>.<micro>
+#   format:
+#     SDL_DEFAULT_VERSION
+#     SDL_IMAGE_DEFAULT_VERSION
+#     SDL_MIXER_DEFAULT_VERSION
+#     SDL_NET_DEFAULT_VERSION
+#     SDL_RTF_DEFAULT_VERSION
+#     SDL_TTF_DEFAULT_VERSION
 #
 #   SDL_version_major (string): major version of SDL to search for
 #
@@ -30,6 +37,17 @@ macro(set_default_SDL_versions SDL_version_major)
   # sets PACKAGE_MANAGER_BINARY if not already cached
   determine_package_manager()
 
+  foreach(version_var
+      SDL_DEFAULT_VERSION
+      SDL_IMAGE_DEFAULT_VERSION
+      SDL_MIXER_DEFAULT_VERSION
+      SDL_NET_DEFAULT_VERSION
+      SDL_RTF_DEFAULT_VERSION
+      SDL_TTF_DEFAULT_VERSION
+    )
+    unset(${version_var})
+  endforeach()
+
   if(${PACKAGE_MANAGER_BINARY} MATCHES "/brew$")
     #
     # MacOS: homebrew
@@ -42,12 +60,12 @@ macro(set_default_SDL_versions SDL_version_major)
       default_package_version(" "            SDL_RTF_DEFAULT_VERSION)
       default_package_version("sdl_ttf"      SDL_TTF_DEFAULT_VERSION)
     elseif(${SDL_version_major} EQUAL 2)
-      default_package_version("sdl2"         SDL2_DEFAULT_VERSION)
-      default_package_version("sdl2_image"   SDL2_IMAGE_DEFAULT_VERSION)
-      default_package_version("sdl2_mixer"   SDL2_MIXER_DEFAULT_VERSION)
-      default_package_version("sdl2_net"     SDL2_NET_DEFAULT_VERSION)
-      default_package_version(" "            SDL2_RTF_DEFAULT_VERSION)
-      default_package_version("sdl2_ttf"     SDL2_TTF_DEFAULT_VERSION)
+      default_package_version("sdl2"         SDL_DEFAULT_VERSION)
+      default_package_version("sdl2_image"   SDL_IMAGE_DEFAULT_VERSION)
+      default_package_version("sdl2_mixer"   SDL_MIXER_DEFAULT_VERSION)
+      default_package_version("sdl2_net"     SDL_NET_DEFAULT_VERSION)
+      default_package_version(" "            SDL_RTF_DEFAULT_VERSION)
+      default_package_version("sdl2_ttf"     SDL_TTF_DEFAULT_VERSION)
     endif()
   elseif(${PACKAGE_MANAGER_BINARY} MATCHES "/aptitude$" OR
       ${PACKAGE_MANAGER_BINARY} MATCHES "/apt$")
@@ -62,12 +80,12 @@ macro(set_default_SDL_versions SDL_version_major)
       default_package_version(" "                   SDL_RTF_DEFAULT_VERSION)
       default_package_version(" "                   SDL_TTF_DEFAULT_VERSION)
     elseif(${SDL_version_major} EQUAL 2)
-      default_package_version("libsdl2-2.0-0"       SDL2_DEFAULT_VERSION)
-      default_package_version("libsdl2-image-2.0-0" SDL2_IMAGE_DEFAULT_VERSION)
-      default_package_version("libsdl2-mixer-2.0-0" SDL2_MIXER_DEFAULT_VERSION)
-      default_package_version("libsdl2-net-2.0-0"   SDL2_NET_DEFAULT_VERSION)
-      default_package_version(" "                   SDL2_RTF_DEFAULT_VERSION)
-      default_package_version("libsdl2-ttf-2.0-0"   SDL2_TTF_DEFAULT_VERSION)
+      default_package_version("libsdl2-2.0-0"       SDL_DEFAULT_VERSION)
+      default_package_version("libsdl2-image-2.0-0" SDL_IMAGE_DEFAULT_VERSION)
+      default_package_version("libsdl2-mixer-2.0-0" SDL_MIXER_DEFAULT_VERSION)
+      default_package_version("libsdl2-net-2.0-0"   SDL_NET_DEFAULT_VERSION)
+      default_package_version(" "                   SDL_RTF_DEFAULT_VERSION)
+      default_package_version("libsdl2-ttf-2.0-0"   SDL_TTF_DEFAULT_VERSION)
     endif()
   elseif(${PACKAGE_MANAGER_BINARY} MATCHES "/dnf$" OR
       ${PACKAGE_MANAGER_BINARY} MATCHES "/yum$")
@@ -82,12 +100,12 @@ macro(set_default_SDL_versions SDL_version_major)
       default_package_version(" "          SDL_RTF_DEFAULT_VERSION)
       default_package_version("SDL_ttf"    SDL_TTF_DEFAULT_VERSION)
     elseif(${SDL_version_major} EQUAL 2)
-      default_package_version("SDL2"       SDL2_DEFAULT_VERSION)
-      default_package_version("SDL2_image" SDL2_IMAGE_DEFAULT_VERSION)
-      default_package_version("SDL2_mixer" SDL2_MIXER_DEFAULT_VERSION)
-      default_package_version("SDL2_net"   SDL2_NET_DEFAULT_VERSION)
-      default_package_version(" "          SDL2_RTF_DEFAULT_VERSION)
-      default_package_version("SDL2_ttf"   SDL2_TTF_DEFAULT_VERSION)
+      default_package_version("SDL2"       SDL_DEFAULT_VERSION)
+      default_package_version("SDL2_image" SDL_IMAGE_DEFAULT_VERSION)
+      default_package_version("SDL2_mixer" SDL_MIXER_DEFAULT_VERSION)
+      default_package_version("SDL2_net"   SDL_NET_DEFAULT_VERSION)
+      default_package_version(" "          SDL_RTF_DEFAULT_VERSION)
+      default_package_version("SDL2_ttf"   SDL_TTF_DEFAULT_VERSION)
     endif()
   elseif(${PACKAGE_MANAGER_BINARY} MATCHES "/pacman$")
     #
@@ -101,12 +119,12 @@ macro(set_default_SDL_versions SDL_version_major)
       default_package_version(" "            SDL_RTF_DEFAULT_VERSION)
       default_package_version("sdl_ttf"      SDL_TTF_DEFAULT_VERSION)
     elseif(${SDL_version_major} EQUAL 2)
-      default_package_version("sdl2"         SDL2_DEFAULT_VERSION)
-      default_package_version("sdl2_image"   SDL2_IMAGE_DEFAULT_VERSION)
-      default_package_version("sdl2_mixer"   SDL2_MIXER_DEFAULT_VERSION)
-      default_package_version("sdl2_net"     SDL2_NET_DEFAULT_VERSION)
-      default_package_version(" "            SDL2_RTF_DEFAULT_VERSION)
-      default_package_version("sdl2_ttf"     SDL2_TTF_DEFAULT_VERSION)
+      default_package_version("sdl2"         SDL_DEFAULT_VERSION)
+      default_package_version("sdl2_image"   SDL_IMAGE_DEFAULT_VERSION)
+      default_package_version("sdl2_mixer"   SDL_MIXER_DEFAULT_VERSION)
+      default_package_version("sdl2_net"     SDL_NET_DEFAULT_VERSION)
+      default_package_version(" "            SDL_RTF_DEFAULT_VERSION)
+      default_package_version("sdl2_ttf"     SDL_TTF_DEFAULT_VERSION)
     endif()
   elseif(${PACKAGE_MANAGER_BINARY} MATCHES "/emerge")
     #
@@ -120,12 +138,12 @@ macro(set_default_SDL_versions SDL_version_major)
       default_package_version(" "          SDL_RTF_DEFAULT_VERSION)
       default_package_version(" "          SDL_TTF_DEFAULT_VERSION)
     elseif(${SDL_version_major} EQUAL 2)
-      default_package_version("libsdl2"    SDL2_DEFAULT_VERSION)
-      default_package_version("sdl2-image" SDL2_IMAGE_DEFAULT_VERSION)
-      default_package_version("sdl2-mixer" SDL2_MIXER_DEFAULT_VERSION)
-      default_package_version("sdl2-net"   SDL2_NET_DEFAULT_VERSION)
-      default_package_version("sdl2-rtf"   SDL2_RTF_DEFAULT_VERSION)
-      default_package_version("sdl2-ttf"   SDL2_TTF_DEFAULT_VERSION)
+      default_package_version("libsdl2"    SDL_DEFAULT_VERSION)
+      default_package_version("sdl2-image" SDL_IMAGE_DEFAULT_VERSION)
+      default_package_version("sdl2-mixer" SDL_MIXER_DEFAULT_VERSION)
+      default_package_version("sdl2-net"   SDL_NET_DEFAULT_VERSION)
+      default_package_version("sdl2-rtf"   SDL_RTF_DEFAULT_VERSION)
+      default_package_version("sdl2-ttf"   SDL_TTF_DEFAULT_VERSION)
     endif()
   elseif(${PACKAGE_MANAGER_BINARY} MATCHES "/zypper$")
     #
@@ -140,12 +158,12 @@ macro(set_default_SDL_versions SDL_version_major)
       default_package_version(" "                   SDL_RTF_DEFAULT_VERSION)
       default_package_version("libSDL_ttf-1_2-0"    SDL_TTF_DEFAULT_VERSION)
     elseif(${SDL_version_major} EQUAL 2)
-      default_package_version("libSDL2-2_0-0"       SDL2_DEFAULT_VERSION)
-      default_package_version("libSDL2_image-2_0-0" SDL2_IMAGE_DEFAULT_VERSION)
-      default_package_version("libSDL2_mixer-2_0-0" SDL2_MIXER_DEFAULT_VERSION)
-      default_package_version("libSDL2_net-2_0-0"   SDL2_NET_DEFAULT_VERSION)
-      default_package_version(" "                   SDL2_RTF_DEFAULT_VERSION)
-      default_package_version("libSDL2_ttf-2_0-0"   SDL2_TTF_DEFAULT_VERSION)
+      default_package_version("libSDL2-2_0-0"       SDL_DEFAULT_VERSION)
+      default_package_version("libSDL2_image-2_0-0" SDL_IMAGE_DEFAULT_VERSION)
+      default_package_version("libSDL2_mixer-2_0-0" SDL_MIXER_DEFAULT_VERSION)
+      default_package_version("libSDL2_net-2_0-0"   SDL_NET_DEFAULT_VERSION)
+      default_package_version(" "                   SDL_RTF_DEFAULT_VERSION)
+      default_package_version("libSDL2_ttf-2_0-0"   SDL_TTF_DEFAULT_VERSION)
     endif()
   else()
     message(WARNING "`${PACKAGE_MANAGER_BINARY}` is unsupported package manager")
@@ -153,7 +171,7 @@ macro(set_default_SDL_versions SDL_version_major)
 
   macro(SDL_version_from_package_version package_ver SDL_ver_var)
     upstream_ver_from_package_ver(${package_ver} ${SDL_ver_var})
-    # "upstream version" according to package manager may still have suffixes,
+    # upstream version according to package manager may still have suffixes,
     #    eg "+dfsg" or "+hg695". Here we strip all else away to get the
     #    <major>.<minor>.<micro> version used by SDL repository tags.
     # (double backslashes for cmake argument parsing)
@@ -162,32 +180,17 @@ macro(set_default_SDL_versions SDL_version_major)
       ${SDL_ver_var} ${${SDL_ver_var}})
   endmacro()
 
-  if(${SDL_version_major} EQUAL 1)
-    foreach(version_var
-        SDL_DEFAULT_VERSION
-        SDL_IMAGE_DEFAULT_VERSION
-        SDL_MIXER_DEFAULT_VERSION
-        SDL_NET_DEFAULT_VERSION
-        SDL_RTF_DEFAULT_VERSION
-        SDL_TTF_DEFAULT_VERSION
-      )
-      if(${version_var})
-        SDL_version_from_package_version(${${version_var}} ${version_var})
-      endif()
-    endforeach()
-  elseif(${SDL_version_major} EQUAL 2)
-    foreach(version_var
-        SDL2_DEFAULT_VERSION
-        SDL2_IMAGE_DEFAULT_VERSION
-        SDL2_MIXER_DEFAULT_VERSION
-        SDL2_NET_DEFAULT_VERSION
-        SDL2_RTF_DEFAULT_VERSION
-        SDL2_TTF_DEFAULT_VERSION
-      )
-      if(${version_var})
-        SDL_version_from_package_version(${${version_var}} ${version_var})
-      endif()
-    endforeach()
-  endif()
+  foreach(version_var
+      SDL_DEFAULT_VERSION
+      SDL_IMAGE_DEFAULT_VERSION
+      SDL_MIXER_DEFAULT_VERSION
+      SDL_NET_DEFAULT_VERSION
+      SDL_RTF_DEFAULT_VERSION
+      SDL_TTF_DEFAULT_VERSION
+    )
+    if(${version_var})
+      SDL_version_from_package_version(${${version_var}} ${version_var})
+    endif()
+  endforeach()
 
 endmacro()
