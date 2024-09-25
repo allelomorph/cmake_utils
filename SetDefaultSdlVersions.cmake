@@ -10,6 +10,9 @@ if(NOT COMMAND default_package_version)
   include(DefaultPackageVersion)
 endif()
 
+if(NOT COMMAND upstream_ver_from_package_ver)
+  include(UpstreamVerFromPackageVer)
+endif()
 
 # set_default_SDL_versions(SDL_version_major)
 #   queries system package manager to get default versions of the SDL core and
@@ -146,6 +149,45 @@ macro(set_default_SDL_versions SDL_version_major)
     endif()
   else()
     message(WARNING "`${PACKAGE_MANAGER_BINARY}` is unsupported package manager")
+  endif()
+
+  macro(SDL_version_from_package_version package_ver SDL_ver_var)
+    upstream_ver_from_package_ver(${package_ver} ${SDL_ver_var})
+    # "upstream version" according to package manager may still have suffixes,
+    #    eg "+dfsg" or "+hg695". Here we strip all else away to get the
+    #    <major>.<minor>.<micro> version used by SDL repository tags.
+    # (double backslashes for cmake argument parsing)
+    string(REGEX REPLACE
+      "^([0-9]+\\.[0-9]+\\.[0-9]+).*$" "\\1"
+      ${SDL_ver_var} ${${SDL_ver_var}})
+  endmacro()
+
+  if(${SDL_version_major} EQUAL 1)
+    foreach(version_var
+        SDL_DEFAULT_VERSION
+        SDL_IMAGE_DEFAULT_VERSION
+        SDL_MIXER_DEFAULT_VERSION
+        SDL_NET_DEFAULT_VERSION
+        SDL_RTF_DEFAULT_VERSION
+        SDL_TTF_DEFAULT_VERSION
+      )
+      if(${version_var})
+        SDL_version_from_package_version(${${version_var}} ${version_var})
+      endif()
+    endforeach()
+  elseif(${SDL_version_major} EQUAL 2)
+    foreach(version_var
+        SDL2_DEFAULT_VERSION
+        SDL2_IMAGE_DEFAULT_VERSION
+        SDL2_MIXER_DEFAULT_VERSION
+        SDL2_NET_DEFAULT_VERSION
+        SDL2_RTF_DEFAULT_VERSION
+        SDL2_TTF_DEFAULT_VERSION
+      )
+      if(${version_var})
+        SDL_version_from_package_version(${${version_var}} ${version_var})
+      endif()
+    endforeach()
   endif()
 
 endmacro()
