@@ -1,32 +1,45 @@
-# newest features used: FetchContent v3.11, FetchContent_MakeAvailable v3.14
-cmake_minimum_required(VERSION 3.14)
+# newest features used: FetchContent v3.11, FetchContent_MakeAvailable v3.14,
+#   find_package version ranges v3.19
+cmake_minimum_required(VERSION 3.19)
 
 if(NOT COMMAND fetch_if_not_found)
   include(FetchIfNotFound)
 endif()
 
-# See https://packages.ubuntu.com/search?keywords=sdl2 for package versions
-# In all cases currently only considering SDL2 v2, not v3
-#
-# Relevant SDL2_rtf releases:
-# - !!! Does not appear as Ubuntu 20.04 LTS, 22.04 LTS, or 23.10 package
-# - current v2 release at last script update: (requires SDL2 2.0.16
-#     due to use of SDL_islower (2.0.12+) and SDL_isalpha (2.0.16+))
-#   2.0.0 f93334ac8cf40ca5b2dc63adf9ce1c3704b832d1
+# current release at last script update (requires SDL 2.0.16+ due to use of
+#   SDL_islower (2.0.12) and SDL_isalpha (2.0.16)) (hash is from commit with
+#   first appearance of sdl2_rtf-config-version.cmake.in)
+set(SDL_RTF_MINIMUM_VERSION "2.0.0")  # ef8e0b90ab1ff43ac87bda69e5ec297bb5014e8b
+# latest release at last script update (repo has no tags set):
+set(SDL_RTF_CURRENT_VERSION "2.0.0")  # 09fa7ee967b9b2ca02ed60c8193f1a7c34221657
+set(SDL_RTF_CURRENT_VERSION_COMMIT_HASH "09fa7ee967b9b2ca02ed60c8193f1a7c34221657")
+
+if(NOT SDL_RTF_DEFAULT_VERSION OR
+    "${SDL_RTF_DEFAULT_VERSION}" VERSION_LESS "${SDL_RTF_MINIMUM_VERSION}")
+  set(SDL_RTF_TARGET_VERSION "${SDL_RTF_MINIMUM_VERSION}")
+else()
+  set(SDL_RTF_TARGET_VERSION "${SDL_RTF_DEFAULT_VERSION}")
+endif()
+
 set(FP_OPTIONS
-  2.0.0
+  # sdl2_rtf-config-version.cmake sets any version higher than requested as
+  #   compatible, see:
+  #   - https://cmake.org/cmake/help/v3.19/command/find_package.html#version-selection
+  #   - https://github.com/libsdl-org/SDL_rtf/blob/ef8e0b90ab1ff43ac87bda69e5ec297bb5014e8b/sdl2_rtf-config-version.cmake.in
+  #   but we will make this explicit with '<'
+  "${SDL_RTF_MINIMUM_VERSION}<"
   # cmake-supplied FindSDL*.cmake modules (through v3.30 at least) are written
   #   for SDL1.x, and SDL2 has switched to preferring config mode, see:
   #   - https://wiki.libsdl.org/SDL2/README/cmake
   CONFIG
 )
 set(FC_OPTIONS
-  GIT_REPOSITORY https://github.com/libsdl-org/SDL_rtf.git
-  GIT_TAG        f93334ac8cf40ca5b2dc63adf9ce1c3704b832d1 # 2.0.0 (repo has no tags)
+  GIT_REPOSITORY "https://github.com/libsdl-org/SDL_rtf.git"
+  GIT_TAG        "${SDL_RTF_CURRENT_VERSION_COMMIT_HASH}"
 )
 # SDL_rtf 2.0.0 does not use SDL2RTF_VENDORED
-# set(SDL2TTF_VENDORED TRUE)
+# set(SDL2RTF_VENDORED ON)
 # Disabling install to avoid dependency export set errors, see:
-#   - https://github.com/libsdl-org/SDL_rtf/blob/f93334ac8cf40ca5b2dc63adf9ce1c3704b832d1/CMakeLists.txt#L55
+#   - https://github.com/libsdl-org/SDL_rtf/blob/ef8e0b90ab1ff43ac87bda69e5ec297bb5014e8b/CMakeLists.txt#L52
 set(SDL2RTF_INSTALL OFF)
-fetch_if_not_found(SDL2_rtf "" "${FC_OPTIONS}")
+fetch_if_not_found(SDL2_rtf "${FP_OPTIONS}" "${FC_OPTIONS}")
