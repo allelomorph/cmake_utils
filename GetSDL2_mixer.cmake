@@ -1,6 +1,5 @@
-# newest features used: FetchContent v3.11, FetchContent_MakeAvailable v3.14,
-#   find_package version ranges v3.19
-cmake_minimum_required(VERSION 3.19)
+# newest features used: FetchContent v3.11, FetchContent_MakeAvailable v3.14
+cmake_minimum_required(VERSION 3.14)
 
 if(NOT COMMAND fetch_if_not_found)
   include(FetchIfNotFound)
@@ -21,10 +20,9 @@ endif()
 set(FP_OPTIONS
   # sdl2_mixer-config-version.cmake sets any version higher than requested as
   #   compatible, see:
-  #   - https://cmake.org/cmake/help/v3.19/command/find_package.html#version-selection
+  #   - https://cmake.org/cmake/help/v3.14/command/find_package.html#version-selection
   #   - https://github.com/libsdl-org/SDL_mixer/blob/release-2.6.0/sdl2_mixer-config-version.cmake.in
-  #   but we will make this explicit with '<'
-  "${SDL_MIXER_MINIMUM_VERSION}<"
+  "${SDL_MIXER_MINIMUM_VERSION}"
   # cmake-supplied FindSDL*.cmake modules (through v3.30 at least) are written
   #   for SDL1.x, and SDL2 has switched to preferring config mode, see:
   #   - https://wiki.libsdl.org/SDL2/README/cmake
