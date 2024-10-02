@@ -1,6 +1,11 @@
 # newest features used: FetchContent v3.11, FetchContent_MakeAvailable v3.14
 cmake_minimum_required(VERSION 3.14)
 
+# prevent redundancy by testing for use in parent projects
+if(SDL2_net_FOUND OR sdl2_net_POPULATED)
+  return()
+endif()
+
 if(NOT COMMAND fetch_if_not_found)
   include(FetchIfNotFound)
 endif()
