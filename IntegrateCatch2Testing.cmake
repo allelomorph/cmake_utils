@@ -142,7 +142,7 @@ available when using valgrind")
     #   label, but labels are not properly imported from Catch2 tags, see:
     #   - https://github.com/catchorg/Catch2/issues/1590
     list(APPEND ctest_command
-      "--tests-regex" "${CATCH2_TARGET_TEST_NAME_REGEX}"
+      "--tests-regex" "\"${CATCH2_TARGET_TEST_NAME_REGEX}\""
     )
   endif()
   add_custom_command(TARGET "${target}" POST_BUILD
