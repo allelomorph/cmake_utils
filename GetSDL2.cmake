@@ -10,6 +10,8 @@ if(NOT COMMAND fetch_if_not_found)
   include(FetchIfNotFound)
 endif()
 
+include(SetDefaultSDL2Version)
+
 # earliest release to satisfy all of the following:
 #   - defines targets SDL2::SDL2 and SDL2::SDL2main
 #   - supports recent releases of SDL_image, see:
@@ -30,11 +32,11 @@ set(SDL_MINIMUM_VERSION "2.0.16")  # 25f9ed87ff6947d9576fc9d79dee0784e638ac58
 # latest release at last script update
 set(SDL_CURRENT_VERSION "2.30.7")  # 9519b9916cd29a14587af0507292f2bd31dd5752
 
-if(NOT SDL_DEFAULT_VERSION OR
-    "${SDL_DEFAULT_VERSION}" VERSION_LESS "${SDL_MINIMUM_VERSION}")
+if(NOT SDL2_DEFAULT_VERSION OR
+    "${SDL2_DEFAULT_VERSION}" VERSION_LESS "${SDL_MINIMUM_VERSION}")
   set(SDL_TARGET_VERSION "${SDL_MINIMUM_VERSION}")
 else()
-  set(SDL_TARGET_VERSION "${SDL_DEFAULT_VERSION}")
+  set(SDL_TARGET_VERSION "${SDL2_DEFAULT_VERSION}")
 endif()
 
 set(FP_OPTIONS

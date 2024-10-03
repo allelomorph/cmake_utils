@@ -10,6 +10,8 @@ if(NOT COMMAND fetch_if_not_found)
   include(FetchIfNotFound)
 endif()
 
+include(SetDefaultSDL2_rtfVersion)
+
 # current release at last script update (requires SDL 2.0.16+ due to use of
 #   SDL_islower (2.0.12) and SDL_isalpha (2.0.16)) (hash is from commit with
 #   first appearance of sdl2_rtf-config-version.cmake.in)
@@ -18,11 +20,11 @@ set(SDL_RTF_MINIMUM_VERSION "2.0.0")  # ef8e0b90ab1ff43ac87bda69e5ec297bb5014e8b
 set(SDL_RTF_CURRENT_VERSION "2.0.0")  # 09fa7ee967b9b2ca02ed60c8193f1a7c34221657
 set(SDL_RTF_CURRENT_VERSION_COMMIT_HASH "09fa7ee967b9b2ca02ed60c8193f1a7c34221657")
 
-if(NOT SDL_RTF_DEFAULT_VERSION OR
-    "${SDL_RTF_DEFAULT_VERSION}" VERSION_LESS "${SDL_RTF_MINIMUM_VERSION}")
+if(NOT SDL2_RTF_DEFAULT_VERSION OR
+    "${SDL2_RTF_DEFAULT_VERSION}" VERSION_LESS "${SDL_RTF_MINIMUM_VERSION}")
   set(SDL_RTF_TARGET_VERSION "${SDL_RTF_MINIMUM_VERSION}")
 else()
-  set(SDL_RTF_TARGET_VERSION "${SDL_RTF_DEFAULT_VERSION}")
+  set(SDL_RTF_TARGET_VERSION "${SDL2_RTF_DEFAULT_VERSION}")
 endif()
 
 set(FP_OPTIONS

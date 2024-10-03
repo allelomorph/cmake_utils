@@ -10,16 +10,18 @@ if(NOT COMMAND fetch_if_not_found)
   include(FetchIfNotFound)
 endif()
 
+include(SetDefaultSDL2_ttfVersion)
+
 # first release with optional install (requires SDL2 2.0.10):
 set(SDL_TTF_MINIMUM_VERSION "2.20.0")  # b31ee728430e71f1f6e927f89284af9fd58bd1d9
 # latest release at last script update:
 set(SDL_TTF_CURRENT_VERSION "2.22.0")  # 4a318f8dfaa1bb6f10e0c5e54052e25d3c7f3440
 
-if(NOT SDL_TTF_DEFAULT_VERSION OR
-    "${SDL_TTF_DEFAULT_VERSION}" VERSION_LESS "${SDL_TTF_MINIMUM_VERSION}")
+if(NOT SDL2_TTF_DEFAULT_VERSION OR
+    "${SDL2_TTF_DEFAULT_VERSION}" VERSION_LESS "${SDL_TTF_MINIMUM_VERSION}")
   set(SDL_TTF_TARGET_VERSION "${SDL_TTF_MINIMUM_VERSION}")
 else()
-  set(SDL_TTF_TARGET_VERSION "${SDL_TTF_DEFAULT_VERSION}")
+  set(SDL_TTF_TARGET_VERSION "${SDL2_TTF_DEFAULT_VERSION}")
 endif()
 
 set(FP_OPTIONS

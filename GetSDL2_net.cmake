@@ -10,16 +10,18 @@ if(NOT COMMAND fetch_if_not_found)
   include(FetchIfNotFound)
 endif()
 
+include(SetDefaultSDL2_netVersion)
+
 # first release supporting cmake (requires SDL 2.0.9):
 set(SDL_NET_MINIMUM_VERSION "2.2.0")  # 669e75b84632e2c6cc5c65974ec9e28052cb7a4e
 # latest release at last script update
 set(SDL_NET_CURRENT_VERSION "2.2.0")  # 669e75b84632e2c6cc5c65974ec9e28052cb7a4e
 
-if(NOT SDL_NET_DEFAULT_VERSION OR
-    "${SDL_NET_DEFAULT_VERSION}" VERSION_LESS "${SDL_NET_MINIMUM_VERSION}")
+if(NOT SDL2_NET_DEFAULT_VERSION OR
+    "${SDL2_NET_DEFAULT_VERSION}" VERSION_LESS "${SDL_NET_MINIMUM_VERSION}")
   set(SDL_NET_TARGET_VERSION "${SDL_NET_MINIMUM_VERSION}")
 else()
-  set(SDL_NET_TARGET_VERSION "${SDL_NET_DEFAULT_VERSION}")
+  set(SDL_NET_TARGET_VERSION "${SDL2_NET_DEFAULT_VERSION}")
 endif()
 
 set(FP_OPTIONS
