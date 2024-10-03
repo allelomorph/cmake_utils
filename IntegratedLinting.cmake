@@ -1,5 +1,5 @@
-# most recent features used: CMAKE_CXX_CPPLINT 3.8, CMAKE_CXX_CPPCHECK 3.10
-cmake_minimum_required(VERSION 3.10)
+# most recent features used: if(DEFINED CACHE{}) v3.14
+cmake_minimum_required(VERSION 3.14)
 
 include_guard(DIRECTORY)
 
@@ -29,7 +29,7 @@ project root lists file")
 
   # clang-tidy errors will always stop the build, see:
   #   - https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmcmd.cxx#L419
-  if(NOT DEFINED _CMAKE_CXX_CLANG_TIDY)
+  if(NOT DEFINED CACHE{_CMAKE_CXX_CLANG_TIDY})
     find_program(CLANG_TIDY_BINARY
       NAMES clang-tidy
     )
@@ -52,7 +52,7 @@ project root lists file")
   # cpplint errors will never stop the build and are only issued as warnings
   #   (plain text, not message(WARNING),) see:
   #   - https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmcmd.cxx#L475
-  if(NOT DEFINED _CMAKE_CXX_CPPLINT)
+  if(NOT DEFINED CACHE{_CMAKE_CXX_CPPLINT})
     find_program(CPPLINT_BINARY
       NAMES cpplint
     )
@@ -73,7 +73,7 @@ project root lists file")
   # cppcheck by default should not stop the build when reporting errors, see:
   #   - https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmcmd.cxx#L529
   #   (this can be toggled by passing --error-exitcode)
-  if(NOT DEFINED _CMAKE_CXX_CPPCHECK)
+  if(NOT DEFINED CACHE{_CMAKE_CXX_CPPCHECK})
     find_program(CPPCHECK_BINARY
       NAMES cppcheck
     )
@@ -101,7 +101,7 @@ project root lists file")
   # include-what-you-use errors only issued as warnings (not message(WARNING))
   #   unless using --error to set exit code, see:
   #   - https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmcmd.cxx#L363
-  if(NOT DEFINED _CMAKE_CXX_INCLUDE_WHAT_YOU_USE)
+  if(NOT DEFINED CACHE{_CMAKE_CXX_INCLUDE_WHAT_YOU_USE})
     find_program(INCLUDE_WHAT_YOU_USE_BINARY
       NAMES include-what-you-use iwyu
     )
@@ -142,10 +142,10 @@ function(integrated_linting target)
   endif()
 
   # sets cache vars, so should only run on first call
-  if(NOT DEFINED _CMAKE_CXX_CLANG_TIDY OR
-      NOT DEFINED _CMAKE_CXX_CPPCHECK OR
-      NOT DEFINED _CMAKE_CXX_CPPLINT OR
-      NOT DEFINED _CMAKE_CXX_INCLUDE_WHAT_YOU_USE)
+  if(NOT DEFINED CACHE{_CMAKE_CXX_CLANG_TIDY} OR
+      NOT DEFINED CACHE{_CMAKE_CXX_CPPCHECK} OR
+      NOT DEFINED CACHE{_CMAKE_CXX_CPPLINT} OR
+      NOT DEFINED CACHE{_CMAKE_CXX_INCLUDE_WHAT_YOU_USE})
     init_integrated_linting()
   endif()
 
