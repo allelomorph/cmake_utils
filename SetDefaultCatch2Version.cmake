@@ -58,8 +58,8 @@ macro(set_default_catch2_version)
   if(${CATCH_DEFAULT_VERSION})
     upstream_ver_from_package_ver(
       "${CATCH_DEFAULT_VERSION}" CATCH_DEFAULT_VERSION)
-    # upstream version according to package manager may still have suffixes,
-    #    eg "+dfsg" or "+hg695". Here we strip all else away to get the
+    # upstream version according to package manager may still have suffixes to
+    #   the dot notation version. Here we strip all else away to get the
     #    <major>.<minor>.<patch> version used by Catch2 repository tags.
     # (double backslashes for cmake argument parsing)
     string(REGEX REPLACE
