@@ -106,12 +106,12 @@ macro(init_integrated_linting)
         "${INCLUDE_WHAT_YOU_USE_BINARY}"
         "-Xiwyu" "--cxx17ns"
       )
-      set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE
+      set(_CMAKE_CXX_INCLUDE_WHAT_YOU_USE
         "${INCLUDE_WHAT_YOU_USE_COMMAND}" CACHE STRING
         "default include-what-you-use command line for linting files")
     else()
       message(WARNING "include-what-you-use not found, skipping use as linter")
-      set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE
+      set(_CMAKE_CXX_INCLUDE_WHAT_YOU_USE
         "${INCLUDE_WHAT_YOU_USE_BINARY}" CACHE STRING
         "default include-what-you-use command line for linting files")
     endif()
