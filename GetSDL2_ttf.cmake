@@ -1,4 +1,4 @@
-# newest features used: FetchContent v3.11, FetchContent_MakeAvailable v3.14
+# newest features used: TBD
 cmake_minimum_required(VERSION 3.14)
 
 # prevent redundancy by testing for use in parent projects
