@@ -1,4 +1,4 @@
-# newest features used: FetchContent v3.11, FetchContent_MakeAvailable v3.14
+# newest features: TBD
 cmake_minimum_required(VERSION 3.14)
 
 # prevent redundancy by testing for use in parent projects
@@ -9,6 +9,8 @@ endif()
 if(NOT COMMAND fetch_if_not_found)
   include(FetchIfNotFound)
 endif()
+
+include(SetDefaultCatch2Version)
 
 # Using Catch2 v2.x:
 # - supports C++11+
@@ -40,11 +42,11 @@ set(CATCH_MINIMUM_VERSION "3.4.0")  # 6e79e682b726f524310d55dec8ddac4e9c52fb5f
 #     - https://github.com/catchorg/Catch2/issues/2873
 set(CATCH_CURRENT_VERSION "3.7.1")  # fa43b77429ba76c462b1898d6cd2f2d7a9416b14
 
-if(NOT CATCH_DEFAULT_VERSION OR
-    "${CATCH_DEFAULT_VERSION}" VERSION_LESS "${CATCH_MINIMUM_VERSION}")
+if(NOT CATCH2_DEFAULT_VERSION OR
+    "${CATCH2_DEFAULT_VERSION}" VERSION_LESS "${CATCH_MINIMUM_VERSION}")
   set(CATCH_TARGET_VERSION "${CATCH_MINIMUM_VERSION}")
 else()
-  set(CATCH_TARGET_VERSION "${CATCH_DEFAULT_VERSION}")
+  set(CATCH_TARGET_VERSION "${CATCH2_DEFAULT_VERSION}")
 endif()
 
 set(FP_OPTIONS
