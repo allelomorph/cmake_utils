@@ -66,7 +66,7 @@ else()
   message(WARNING "`${PACKAGE_MANAGER_BINARY}` is unsupported package manager")
 endif()
 
-if(${_SDL2_RTF_DEFAULT_VERSION})
+if(NOT ${_SDL2_RTF_DEFAULT_VERSION} MATCHES "-NOTFOUND$")
   upstream_ver_from_package_ver(
     "${_SDL2_RTF_DEFAULT_VERSION}" _SDL2_RTF_DEFAULT_VERSION)
   # upstream version according to package manager may still have suffixes,
