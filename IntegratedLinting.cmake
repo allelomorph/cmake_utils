@@ -18,9 +18,14 @@ include_guard(DIRECTORY)
 #     downloaded with FetchContent, for example.
 #
 macro(init_integrated_linting)
-
-  # generate compile_commands.json
-  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+  if(NOT CMAKE_EXPORT_COMPILE_COMMANDS)
+    if("${CMAKE_CURRENT_LIST_DIR}" STREQUAL "${PROJECT_SOURCE_DIR}")
+      set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+    else()
+      message(FATAL_ERROR "`set(CMAKE_EXPORT_COMPILE_COMMANDS ON)` required in \
+project root lists file")
+    endif()
+  endif()
 
   # clang-tidy errors will always stop the build, see:
   #   - https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmcmd.cxx#L419
