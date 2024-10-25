@@ -122,7 +122,6 @@ function(setup_integrated_linters)
       list(APPEND CPPLINT_COMMAND
         "--filter=-legal,-build/include_subdir"
       )
-      endif()
       set(_CMAKE_CPPLINT "${CPPLINT_COMMAND}" CACHE STRING
         "default cpplint C/C++ command line for linting files")
     else()
