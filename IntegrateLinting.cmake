@@ -248,7 +248,7 @@ function(integrate_linting target)
         # Setting C|CXX_CPPCHECK causes this call at config time:
         #   cmake -E __run_co_compile --tidy="<C|CXX_CPPCHECK after first>" \
         #     --source=<target source> -- <compile command>
-        #   https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmCommonTargetGenerator.cxx#L319
+        #   https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmCommonTargetGenerator.cxx#L356
         # which has build call:
         #   <C|CXX_CLANG_TIDY (missing -p)> <target source> -- <compile command>
         # (CMake recommends passing `-p compile_commands.json` to clang-tidy
@@ -314,7 +314,7 @@ function(integrate_linting target)
     # Setting C|CXX_CPPCHECK causes this call at config time:
     #   cmake -E __run_co_compile --cppcheck="<C|CXX_CPPCHECK after first>" \
     #     --source=<target source> -- <compile command>
-    #   https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmCommonTargetGenerator.cxx#L319
+    #   https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmCommonTargetGenerator.cxx#L356
     # which has build call:
     #   <C|CXX_CPPCHECK> <compiler -D -U -I options> <target source>
     #   https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmcmd.cxx#L478
@@ -368,7 +368,7 @@ integrate_linting(CPPCHECK_ARGS), they will be auto-populated")
     # Setting C|CXX_CPPLINT causes this call at config time:
     #   cmake -E __run_co_compile --cpplint="<C|CXX_CPPLINT after first>" \
     #     --source=<target source> -- <compile command>
-    #   https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmCommonTargetGenerator.cxx#L319
+    #   https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmCommonTargetGenerator.cxx#L356
     # which has build call:
     #   <C|CXX_CPPLINT> <target source>
     #   https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmcmd.cxx#L451
@@ -401,7 +401,7 @@ integrate_linting(CPPCHECK_ARGS), they will be auto-populated")
     # setting C|CXX_INCLUDE_WHAT_YOU_USE causes this call at config time:
     #   cmake -E __run_co_compile --iwyu="<C|CXX_INCLUDE_WHAT_YOU_USE after first>" \
     #     --source=<target source> -- <compile command>
-    #   https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmCommonTargetGenerator.cxx#L319
+    #   https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmCommonTargetGenerator.cxx#L356
     # which has build call:
     #   <C|CXX_INCLUDE_WHAT_YOU_USE> <compile command>
     #   https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmcmd.cxx#L342
