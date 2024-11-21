@@ -99,7 +99,7 @@ available when using valgrind")
     #   preempting a similar call in CTest.cmake, see:
     #   - https://github.com/Kitware/CMake/blob/v3.30.4/Modules/CTest.cmake#L181
     set(MEMORYCHECK_SUPPRESSIONS_FILE
-      "${CMAKE_CURRENT_LIST_DIR}/SDL2.supp" CACHE FILEPATH
+      "${CMAKE_CURRENT_LIST_DIR}/${target}.supp" CACHE FILEPATH
       "File that contains suppressions for the memory checker"
     )
   endif()
