@@ -71,7 +71,7 @@ if(NOT ${_SDL2_IMAGE_DEFAULT_VERSION} MATCHES "-NOTFOUND$")
     "${_SDL2_IMAGE_DEFAULT_VERSION}" _SDL2_IMAGE_DEFAULT_VERSION)
   # upstream version according to package manager may still have suffixes,
   #    eg "+dfsg" or "+hg695". Here we strip all else away to get the
-  #    <major>.<minor>.<patch> version used by Catch2 repository tags.
+  #    <major>.<minor>.<patch> version used by SDL repository tags.
   # (double backslashes for cmake argument parsing)
   string(REGEX REPLACE
     "^([0-9]+\\.[0-9]+\\.[0-9]+).*$" "\\1"
