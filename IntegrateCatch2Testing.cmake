@@ -91,17 +91,16 @@ function(integrate_catch2_testing target)
       message(WARNING "memcheck suppression generation and exit code control only \
 available when using valgrind")
     endif()
-    # MEMORYCHECK_COMMAND_OPTIONS parsed by cmake as string, not list; can be
-    #   non-cache variable
+
+    # MEMORYCHECK_COMMAND_OPTIONS parsed by cmake as a string, not a list, and
+    #   is not set in CTest.cmake as of v3.30.4
     list(JOIN MEMCHECK_OPTIONS " " MEMORYCHECK_COMMAND_OPTIONS)
 
-    # much like with MEMORYCHECK_COMMAND, we can set the cache var first by
-    #   preempting a similar call in CTest.cmake, see:
-    #   - https://github.com/Kitware/CMake/blob/v3.30.4/Modules/CTest.cmake#L181
-    set(MEMORYCHECK_SUPPRESSIONS_FILE
-      "${CMAKE_CURRENT_LIST_DIR}/${target}.supp" CACHE FILEPATH
-      "File that contains suppressions for the memory checker"
-    )
+    # MEMORYCHECK_SUPPRESSIONS_FILE is cache set as "" by CTest.cmake as of
+    #   v3.30.4, so we intentionally shadow it here with a local value
+    if(CATCH2_TARGET_MEMCHK_SUPPR_FILE)
+      set(MEMORYCHECK_SUPPRESSIONS_FILE "${CATCH2_TARGET_MEMCHK_SUPPR_FILE}")
+    endif()
   endif()
 
   # consumes MEMORYCHECK_* to set up DartConfiguration.tcl
