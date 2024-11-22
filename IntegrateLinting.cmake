@@ -5,6 +5,10 @@ cmake_minimum_required(VERSION 3.15)
 
 include_guard(DIRECTORY)
 
+if(NOT COMMAND get_all_target_dependencies)
+  include(GetAllTargetDependencies)
+endif()
+
 # setup_integrated_linters()
 #   Sets the following options and cache variables, intended for use by
 #     integrate_linting():
@@ -229,6 +233,36 @@ function(integrate_linting target)
       endif()
     endif()
   endforeach()
+
+  # In order to avoid linters (or at least clang-tidy) parsing headers
+  #   included from dependencies, we need to treat them as system headers.
+  #   find_package() should already handle this for installed dependencies,
+  #   presumably by checking CMAKE_SYSTEM_INCLUDE_PATH. But any dependencies
+  #   sourced with FetchContent will need this extra step to be similarly
+  #   omitted from generating linter errors.
+  if(DEFINED FETCHCONTENT_BASE_DIR)
+    get_all_target_dependencies(${target} deps)
+    # build set of all dependency INTERFACE_INCLUDE_DIRECTORIES
+    set(include_dirs)
+    foreach(dep ${deps})
+      get_target_property(interface_include_dirs ${dep}
+        INTERFACE_INCLUDE_DIRECTORIES)
+      if(interface_include_dirs)
+        foreach(dir ${interface_include_dirs})
+          if(NOT ${dir} IN_LIST include_dirs)
+            list(APPEND include_dirs ${dir})
+          endif()
+        endforeach()
+      endif()
+    endforeach()
+    # override transitive `-I` inclusions with `-isystem` inclusions for
+    #   fetched dependencies
+    foreach(dir ${include_dirs})
+      if(dir MATCHES "${FETCHCONTENT_BASE_DIR}/")
+        target_include_directories(${target} SYSTEM PUBLIC ${dir})
+      endif()
+    endforeach()
+  endif()
 
   #
   # append target-specfic options to clang-tidy command line
