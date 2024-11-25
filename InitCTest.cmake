@@ -14,7 +14,11 @@ include_guard(DIRECTORY)
 #     subdirectories, see:
 #     - https://github.com/Kitware/CMake/blob/v3.27.4/Modules/CTestTargets.cmake#L30
 #
-#   Custom parameters:
+#   Implemented as macro wrapping a function due to cmake's (tested with
+#     v3.27.4) consistent failure to generate CTestTestfile scripts when
+#     enable_testing() was called anywhere but the scope of the project root
+#     listfile.
+#
 #   MEMCHECK                       (bool, optional):
 #     toggles memcheck on tests
 #   MEMCHECK_FAILS_TEST            (bool, optional):
@@ -27,18 +31,35 @@ include_guard(DIRECTORY)
 #   MEMORYCHECK_COMMAND_OPTIONS   (list, optional)
 #   MEMORYCHECK_SANITIZER_OPTIONS (list, optional)
 #
-function(init_ctest)
-  # CTest.cmake calls enable_testing(), which must happen in the project root
-  #   for tests to be added properly
-  if(NOT CMAKE_CURRENT_LIST_DIR STREQUAL PROJECT_SOURCE_DIR)
-    message(FATAL_ERROR
-      "please call init_ctest() in the project root directory")
-  endif()
+macro(init_ctest)
 
   if(NOT DEFINED PROJECT_SOURCE_DIR OR
       NOT DEFINED PROJECT_NAME)
     message(FATAL_ERROR
       "please call init_ctest() after project()")
+  endif()
+
+  if(NOT CMAKE_CURRENT_LIST_DIR STREQUAL PROJECT_SOURCE_DIR)
+    message(FATAL_ERROR
+      "please call init_ctest() in the project root directory")
+  endif()
+
+  # Despite being called in CTest module, must be called first in project root
+  #   listfile scope to allow for CTestTestfile generation
+  enable_testing()
+
+  set(_INIT_CTEST_IMPL_CALLED_FROM_INIT_CTEST YES)
+  _init_ctest_impl(${ARGN})
+  unset(_INIT_CTEST_IMPL_CALLED_FROM_INIT_CTEST)
+
+endmacro()
+
+# _init_ctest_impl()
+#   Internal implementation of init_ctest(), all args are passed in unmodified.
+#
+function(_init_ctest_impl)
+  if(NOT _INIT_CTEST_IMPL_CALLED_FROM_INIT_CTEST)
+    message(FATAL_ERROR "_init_ctest_impl() can only be called from init_ctest()")
   endif()
 
   set(options
