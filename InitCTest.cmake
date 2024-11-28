@@ -81,27 +81,12 @@ function(_init_ctest_impl)
   cmake_parse_arguments(""
     "${options}" "${single_value_args}" "${multi_value_args}" ${ARGN}
   )
-  foreach(arg ${single_value_args})
-    if(${arg})
-      # strip leading underscore from cmake_parse_arguments()
-      string(SUBSTRING ${arg} 1 -1 ctest_module_var)
-      set(${ctest_module_var} ${{arg}})
-    endif()
-  endforeach()
-  foreach(arg ${multi_value_args})
-    if(${arg})
-      # strip leading underscore from cmake_parse_arguments()
-      string(SUBSTRING ${arg} 1 -1 ctest_module_var)
-      # convert to CLI-oriented space delimited string
-      list(JOIN ${arg} " " ${ctest_module_var})
-    endif()
-  endforeach()
 
   if(_MEMCHECK_FAILS_TEST OR
       _MEMCHECK_GENERATES_SUPPRESSIONS OR
       _MEMORYCHECK_SUPPRESSIONS_FILE OR
-      _MEMORYCHECK_COMMAND_OPTIONS OR
-      _MEMORYCHECK_SANITIZER_OPTIONS)
+      _MEMORYCHECK_COMMAND_OPTIONS
+    )
     set(_MEMCHECK ON)
   endif()
   if(_MEMCHECK)
@@ -140,6 +125,7 @@ function(_init_ctest_impl)
     if(_MEMCHECK_GENERATES_SUPPRESSIONS)
       list(APPEND memcheck_options "--gen-suppressions=all")
     endif()
+    # join into CLI-friendly string
     list(JOIN memcheck_options " " MEMORYCHECK_COMMAND_OPTIONS)
 
     # MEMORYCHECK_SUPPRESSIONS_FILE is cache set as "" by CTest.cmake as of
