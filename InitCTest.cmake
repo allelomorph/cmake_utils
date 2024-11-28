@@ -125,21 +125,23 @@ function(_init_ctest_impl)
         "init_ctest() currently only supports memcheck with valgrind")
     endif()
 
-    if(NOT MEMORYCHECK_COMMAND_OPTIONS)
+    if(_MEMORYCHECK_COMMAND_OPTIONS)
+      set(memcheck_options ${_MEMORYCHECK_COMMAND_OPTIONS})
+    else()
       # Default valgrind options not passed if user supplies any of their own, see:
       #   - https://github.com/Kitware/CMake/blob/v3.30.4/Source/CTest/cmCTestMemCheckHandler.cxx#L584
       set(memcheck_options
         "-q" "--tool=memcheck" "--leak-check=yes" "--show-reachable=yes"
         "--num-callers=50"
       )
-      if(_MEMCHECK_FAILS_TEST)
-        list(APPEND memcheck_options "--error-exitcode=255")
-      endif()
-      if(_MEMCHECK_GENERATES_SUPPRESSIONS)
-        list(APPEND memcheck_options "--gen-suppressions=all")
-      endif()
-      list(JOIN memcheck_options " " MEMORYCHECK_COMMAND_OPTIONS)
     endif()
+    if(_MEMCHECK_FAILS_TEST)
+      list(APPEND memcheck_options "--error-exitcode=255")
+    endif()
+    if(_MEMCHECK_GENERATES_SUPPRESSIONS)
+      list(APPEND memcheck_options "--gen-suppressions=all")
+    endif()
+    list(JOIN memcheck_options " " MEMORYCHECK_COMMAND_OPTIONS)
 
   endif()
   set(CTEST_MEMCHECK_ENABLED ${_MEMCHECK} PARENT_SCOPE)
