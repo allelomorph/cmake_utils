@@ -106,7 +106,7 @@ function(_init_ctest_impl)
     set(_MEMCHECK ON)
   endif()
   if(_MEMCHECK)
-    # Preempt CTest modules's setting cache var MEMORYCHECK_COMMAND by using
+    # Preempt CTest module's setting cache var MEMORYCHECK_COMMAND by using
     #   same call to find_program, see:
     #   - https://github.com/Kitware/CMake/blob/v3.30.4/Modules/CTest.cmake#L175
     # This allows for early determination of selected memory checker, and thus
