@@ -30,9 +30,8 @@ include_guard(DIRECTORY)
 #     toggles memcheck generating suppressions file
 #
 #   - https://cmake.org/cmake/help/v3.31/manual/ctest.1.html#ctest-memcheck-step
-#   MEMORYCHECK_SUPPRESSIONS_FILE (string, optional)
 #   MEMORYCHECK_COMMAND_OPTIONS   (list, optional)
-#   MEMORYCHECK_SANITIZER_OPTIONS (list, optional)
+#   MEMORYCHECK_SUPPRESSIONS_FILE (string, optional)
 #
 macro(init_ctest)
 
@@ -142,6 +141,12 @@ function(_init_ctest_impl)
       list(APPEND memcheck_options "--gen-suppressions=all")
     endif()
     list(JOIN memcheck_options " " MEMORYCHECK_COMMAND_OPTIONS)
+
+    # MEMORYCHECK_SUPPRESSIONS_FILE is cache set as "" by CTest.cmake as of
+    #   v3.30.4, so we intentionally shadow it here with a local value
+    if(_MEMORYCHECK_SUPPRESSIONS_FILE)
+      set(MEMORYCHECK_SUPPRESSIONS_FILE "${_MEMORYCHECK_SUPPRESSIONS_FILE}")
+    endif()
 
   endif()
   set(CTEST_MEMCHECK_ENABLED ${_MEMCHECK} PARENT_SCOPE)
