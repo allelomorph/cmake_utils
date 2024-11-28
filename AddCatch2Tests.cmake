@@ -63,7 +63,7 @@ function(add_catch2_tests target)
 
   list(APPEND ctest_command
     "${CMAKE_CTEST_COMMAND}"
-    "-C" "$<CONFIGURATION>"
+    "-C" "$<CONFIG>"
     # --output-on-failure will not show output for skipped tests; to inspect
     #   errors on skipped tests use --verbose instead
     "--output-on-failure"
