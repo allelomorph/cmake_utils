@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.15)
 
 include_guard(DIRECTORY)
 
+# Catch2_VERSION
+# Catch2_VERSION_MAJOR
+# Catch2::Catch2WithMain
 include(GetCatch2)
 
 if(NOT COMMAND catch_discover_tests)
@@ -15,15 +18,17 @@ endif()
 #     - https://github.com/catchorg/Catch2/blob/v3.4.0/docs/cmake-integration.md
 #
 #   target (string): tests target using Catch2
+#   MEMCHECK (bool, optional): toggles use of memcheck in tests
 #   TEST_NAME_REGEX (string, optional): regex to filter for tests in target
 #
 function(add_catch2_tests target)
+
   if(NOT TARGET ${target} OR
       NOT BUILD_TESTING)  # set by CTest module
     return()
   endif()
 
-  set(options)
+  set(options MEMCHECK)
   set(single_value_args TEST_NAME_REGEX)
   set(multi_value_args)
   cmake_parse_arguments(""
@@ -56,16 +61,21 @@ function(add_catch2_tests target)
     )
   endif()
 
-  # TBD may be better to store command stem in variable defined by init_ctest,
-  #   which could add test action memcheck based on toggles
   list(APPEND ctest_command
     "${CMAKE_CTEST_COMMAND}"
     "-C" "$<CONFIGURATION>"
-    "--test-action" "memcheck"
     # --output-on-failure will not show output for skipped tests; to inspect
     #   errors on skipped tests use --verbose instead
     "--output-on-failure"
   )
+  if(_MEMCHECK)
+    if(NOT CTEST_MEMCHECK_ENABLED)
+      message(FATAL_ERROR "please call init_ctest() prior to adding tests")
+    endif()
+    list(APPEND ctest_command
+      "--test-action" "memcheck"
+    )
+  endif()
   if(_TEST_NAME_REGEX)
     # If dependencies are fetched and not found, during configuration
     #   dependencies may register their own tests; --tests-regex used here to
@@ -78,7 +88,8 @@ function(add_catch2_tests target)
   endif()
   add_custom_command(TARGET "${target}" POST_BUILD
     COMMAND ${ctest_command}
-    # Run ctest in same directory as DartConfiguration.tcl, see:
+    # Run ctest in same directory as CTestConfiguration.ini/
+    #  DartConfiguration.tcl, see:
     #  - https://github.com/Kitware/CMake/blob/v3.27.4/Modules/CTestTargets.cmake#L30
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
   )

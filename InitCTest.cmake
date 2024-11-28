@@ -19,6 +19,9 @@ include_guard(DIRECTORY)
 #     enable_testing() was called anywhere but the scope of the project root
 #     listfile.
 #
+#   Sets CTEST_MEMCHECK_ENABLED if ctest is set up to use
+#     `--test-action memcheck`.
+#
 #   MEMCHECK                       (bool, optional):
 #     toggles memcheck on tests
 #   MEMCHECK_FAILS_TEST            (bool, optional):
@@ -139,6 +142,7 @@ function(_init_ctest_impl)
     endif()
 
   endif()
+  set(CTEST_MEMCHECK_ENABLED ${_MEMCHECK} PARENT_SCOPE)
 
   # use modern config file name CTestConfiguration.ini over traditional
   #   DartConfiguration.tcl
