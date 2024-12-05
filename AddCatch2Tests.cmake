@@ -63,14 +63,16 @@ function(add_catch2_tests target)
 
   list(APPEND ctest_command
     "${CMAKE_CTEST_COMMAND}"
-    "-C" "$<CONFIG>"
+    # genex evaluated after passing to add_custom_command
+    "$<$<BOOL:$<CONFIG>>:-C $<CONFIG>>"
     # --output-on-failure will not show output for skipped tests; to inspect
     #   errors on skipped tests use --verbose instead
     "--output-on-failure"
   )
   if(_MEMCHECK)
     if(NOT CTEST_MEMCHECK_ENABLED)
-      message(FATAL_ERROR "please call init_ctest() prior to adding tests")
+      message(FATAL_ERROR
+        "please use init_ctest() to set up memcheck prior to adding tests")
     endif()
     list(APPEND ctest_command
       "--test-action" "memcheck"
