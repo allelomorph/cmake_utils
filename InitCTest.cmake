@@ -104,6 +104,7 @@ function(_init_ctest_impl)
     MEMCHECK
     MEMCHECK_FAILS_TEST
     MEMCHECK_GENERATES_SUPPRESSIONS
+    OVERRIDE_CACHED
   )
   set(single_value_args
   )
