@@ -1,0 +1,352 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- cppcheck has a GUI component that outputs XML config files, which can
+     then be passed to the CLI with `--project=`. When automating use of
+     cppcheck, for example as an integrated cmake linter, it could be desirable
+     to hand-write these config files. However, their format is not documented,
+     and examples are hard to find, see:
+       - https://stackoverflow.com/a/69311493
+
+     This file is provided as both an example and documentation of the available
+     XML tags. It was produced by analysis of the cppcheck v2.11 source,
+     especially ImportProject::importCppcheckGuiProject:
+       - https://github.com/danmar/cppcheck/blob/2.11/lib/importproject.cpp#L1127
+     and its comparison with CmdLineParser::parseFromArgs:
+       - https://github.com/danmar/cppcheck/blob/2.11/cli/cmdlineparser.cpp#L143
+
+     Command line options with corresponding XML tags:
+       --addon=
+       --clang
+       --cppcheck-build-dir=
+       -D
+       --file-list=
+       -i
+       -I --includes-file=
+       --library
+       --max-ctu-depth
+       --platform=
+       --project
+       -rp= / --relative-paths=
+       --suppress= / --suppressions-list=
+       -U
+
+     For most tags that share settings with a CLI option, parsing the project
+     file will nullify any of those options set in the command line before
+     passing `--project=`, so best practice is to call the options after parsing
+     the project file. For example, with a config file test.cppcheck that
+     contains:
+
+       <defines>
+         <define name="DEF1"></define>
+         <define name="DEF2"></define>
+       </defines>
+
+     and a CLI line like:
+
+       cppcheck --project=config.cppcheck -DDEF3 -DDEF4 test.cc
+
+     DEF1, DEF2, DEF3, and DEF4 will be defined in the preprocessor, but with:
+
+       cppcheck -DDEF3 -DDEF4 --project=config.cppcheck test.cc
+
+     only DEF1 and DEF2 will be. Refer to descriptions of each tag for exact
+     interactions.
+
+-->
+
+<!-- XML needs to have a root node. Node name is arbitrary and has no effect in
+     cppcheck; consider defaulting to cmake project or target name for which
+     linting will be configured.
+-->
+<project>
+
+  <!-- each subnode text appends to a list which replaces settings.addons
+       (corresponds to `--addon=`)
+  -->
+  <addons>
+    <addon></addon>
+  </addons>
+
+  <!-- node text sets settings.project.guiProject.analyzeAllVsConfigs
+       (GUI exclusive)
+  -->
+  <analyze-all-vs-configs></analyze-all-vs-configs>
+
+  <!-- node text sets settings.buildDir
+       (corresponds to `--cppcheck-build-dir=`)
+  -->
+  <builddir></builddir>
+
+  <!-- node text of exactly "true" sets settings.checkHeaders == true, any other
+       text sets to false
+       (GUI exclusive)
+  -->
+  <check-headers></check-headers>
+
+  <!-- node text of exactly "true" sets settings.checkUnusedTemplates == true,
+       any other text sets to false
+       (GUI exclusive)
+  -->
+  <check-unused-templates></check-unused-templates>
+
+  <!-- each subnode name attribute appends to a list which replaces
+       settings.userDefines. note that one can only set a macro as defined,
+       not assign it a definition as with `-D=`.
+       (corresponds to `-D`)
+  -->
+  <defines>
+    <define name=""></define>
+  </defines>
+
+  <!-- each subnode name attribute appends to settings.project.guiProject.excludedPaths,
+       which are later appended to mIgnoredPaths in reverse order (back inserted)
+       (corresponds to `-i`)
+  -->
+  <exclude>
+    <path name=""></path>
+  </exclude>
+
+  <!-- each subnode name attribute appends to settings.project.guiProject.excludedPaths,
+       which are later appended to mIgnoredPaths in reverse order (back inserted)
+       (corresponds to `-i`)
+       (same as <exclude>)
+  -->
+  <ignore>
+    <path name=""></path>
+  </ignore>
+
+  <!-- node text, if not empty, sets settings.project.guiProject.projectFile,
+       which causes separate import of another project file after the one
+       processed with `--project`
+       (corresponds to `--project`)
+  -->
+  <importproject></importproject>
+
+  <!-- each subnode name attribute appends to a list which replaces
+       settings.includePaths
+       (corresponds to `-I`, `--includes-file=`)
+  -->
+  <includedir>
+    <dir name=""></dir>
+  </includedir>
+
+  <!-- each subnode text appends to settings.project.guiProject.libraries, which
+       are later appended to settings.libraries
+       (corresponds to `--library`)
+  -->
+  <libraries>
+    <library></library>
+  </libraries>
+
+  <!-- node text sets settings.maxCtuDepth
+       (expects text that converts to int)
+       (empty text defaults to "2")
+       (corresponds to `--max-ctu-depth`)
+  -->
+  <max-ctu-depth></max-ctu-depth>
+
+  <!-- node text sets settings.maxTemplateRecursion
+       (expects text that converts to int)
+       (empty text defaults to "100")
+       (GUI exclusive)
+  -->
+  <max-template-recursion></max-template-recursion>
+
+  <!-- sets settings.clang == true regardless of node text; note that
+       settings.clangExecutable cannot be set as with `--clang=`
+       (corresponds to `--clang`)
+  -->
+  <parser></parser>
+
+  <!-- each subnode name attribute appends to settings.project.guiProject.pathNames,
+       which replaces mPathNames
+       (corresponds to `--file-list=`)
+  -->
+  <paths>
+    <dir name=""></dir>
+  </paths>
+
+  <!-- relative path of non-empty name attribute appended to settings.basePaths,
+       settings.relativePaths set to true
+       (corresponds to `-rp=`)
+  -->
+  <root name=""></root>
+
+  <!-- node text sets settings.project.guiProject.platform, which replaces
+       settings.platform - automatically if valid string:
+         win32A win32W win64
+         unix32 unix64
+         native
+         unspecified
+       or via parsing a platform XML file found in the following paths, with
+       dir = directory of file passed with `--project=` or cppcheck binary,
+       and filename = settings.project.guiProject.platform
+         <filename>
+         <filename>.xml
+         platforms/<filename>
+         platforms/<filename>.xml
+         <dir><filename>
+         <dir>platforms/<filename>
+         <dir>platforms/<filename>.xml
+       XML example (remove comments):
+"""
+<?xml version="1.0" encoding="UTF-8"?>
+<platform>
+  <default-sign></default-sign>    # node text set to platform.defaultSign
+  <char_bit></char_bit>            # node text uint set to platform.char_bit
+  <sizeof>
+      <short></short>              # node text uint sets platform.sizeof_short
+      <bool></bool>                # node text uint sets platform.sizeof_bool
+      <int></int>                  # node text uint sets platform.sizeof_int
+      <long></long>                # node text uint sets platform.sizeof_long
+      <long-long></long-long>      # node text uint sets platform.sizeof_long_long
+      <float></float>              # node text uint sets platform.sizeof_float
+      <double></double>            # node text uint sets platform.sizeof_double
+      <long-double></long-double>  # node text uint sets platform.sizeof_long_double
+      <pointer></pointer>          # node text uint sets platform.sizeof_pointer
+      <size_t></size_t>            # node text uint sets platform.sizeof_size_t
+      <wchar_t></wchar_t>          # node text uint sets platform.sizeof_wchar_t
+  </sizeof>
+</platform>
+"""
+      see:
+         - https://github.com/danmar/cppcheck/blob/2.11/lib/platform.cpp#L160
+       (corresponds to `--platform=`)
+  -->
+  <platform></platform>
+
+  <!-- (GUI exclusive)
+  -->
+  <safe-checks>
+    <!-- sets settings.safeChecks.classes == true regardless of node text
+    -->
+    <class-public></class-public>
+    <!-- sets settings.safeChecks.externalFunctions == true regardless of node text
+    -->
+    <external-functions></external-functions>
+    <!-- sets settings.safeChecks.internalFunctions == true regardless of node text
+    -->
+    <internal-functions></internal-functions>
+    <!-- sets settings.safeChecks.externalVariables == true regardless of node text
+    -->
+    <external-variables></external-variables>
+  </safe-checks>
+
+  <!-- each subnode appends a supression to a list which replaces settings.nomsg:
+       (corresponds to `--suppress=` or `--suppressions-list=`; symbolName and
+       hash are GUI exclusives)
+  -->
+  <suppressions>
+    <!-- subnode populated Suppression members:
+           errorId = subnode text
+           fileName = subnode fileName attribute
+           lineNumber = subnode lineNumber attribute, or -1 if empty
+           symbolName = subnode symbolName attribute
+           hash = subnode hash attribute, or 0 if empty
+    -->
+    <suppression
+      fileName="" lineNumber="" symbolName="" hash=""
+      ></suppression>
+  </suppressions>
+
+  <tools>
+    <!-- tool subnode text of "clang-tidy" sets settings.clangTidy == true; all
+         subnode text ignored
+    -->
+    <tool></tool>
+  </tools>
+
+  <!-- each subnode text inserts into a set of undefines which replaces
+       settings.userUndefs
+       (corresponds to `-U`)
+  -->
+  <undefines>
+    <undefine></undefine>
+  </undefines>
+
+  <!-- each subnode text appends to settings.project.guiProject.checkVsConfigs
+       (GUI exclusive)
+  -->
+  <vs-configurations>
+    <config></config>
+  </vs-configurations>
+
+  <!-- no-ops
+       (GUI exclusive)
+  -->
+  <!--
+  <check-unknown-function-return-values></check-unknown-function-return-values>
+  <function-contracts></function-contracts>
+  <tags tag=""></tags>
+  <tag-warnings></tag-warnings>
+  <variable-contracts></variable-contracts>
+  -->
+
+  <!-- cppcheck premium features
+  -->
+  <!--
+  <bug-hunting></bug-hunting>
+  <cert-c-int-precision></cert-c-int-precision>
+  <coding-standards>
+    <coding-standards></coding-standards>
+  </coding-standards>
+  -->
+
+</project>
+
+<!--
+    Documented options exclusive to CLI:
+      --check-config
+      --check-level=normal|exhaustive
+      --check-library
+      --clang=  (xml can set clang to true, but not set clangExecutable)
+      --config-exclude=
+      --config-excludes-file=
+      --disable
+      --enable
+      --errorlist
+      --error-exitcode=
+      --exitcode-suppressions=
+      --file-filter=
+      --force
+      --include=
+      --inconclusive
+      --inline-suppr
+      -j
+      --language=c|c++, -x
+      --max-configs=
+      --output-file=
+      --platform=
+      --plist-output=
+      --premium=  # undocumented
+      --project=
+      --project-configuration=
+      --quiet, -q
+      --report-progress
+      --rule=
+      --rule-file=
+      --std=
+      --template=''
+      --template-location=''
+      --verbose, -v
+      --xml
+      --xml-version=
+
+    Undocumented options exclusive to CLI (discovered during source analysis):
+      --checks-max-time=                         # sets settings.checksMaxTime
+      --debug|--debug-normal                     # settings.debugnormal = true;
+      --debug-simplified                         # settings.debugSimplified = true;
+      --debug-template                           # settings.debugtemplate = true;
+      --debug-warnings                           # settings.debugwarnings = true;
+      --doc                                      # prints descriptions of checks
+      --dump                                     # sets settings.dump = true
+      --exception-handling                       # sets settings.exceptionHandling = true
+      --exception-handling=stdout|stderr         # sets CppCheckExecutor::mExceptionOutput
+      -l                                         # sets int to settings.loadAverage
+      --premium=                                 # adds to settings.premiumArgs
+      --showtime=file|file-total|summary|top5|"" # sets settings.showtime
+      --template-max-time=                       # sets settings.templateMaxTime
+      --typedef-max-time=                        # sets settings.typedefMaxTime
+      --valueflow-max-iterations=                # sets settings.valueFlowMaxIterations
+
+-->
