@@ -60,13 +60,13 @@ function(setup_integrated_linters)
       #   search when it runs in targets' source directories
       # clang-tidy errors will always stop the build, see:
       #   - https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmcmd.cxx#L419
-      list(APPEND CLANG_TIDY_COMMAND
+      list(APPEND clang_tidy_command
         "${CLANG_TIDY_BINARY}"
       )
-      list(APPEND CLANG_TIDY_COMMAND
+      list(APPEND clang_tidy_command
         "--warnings-as-errors=*"
       )
-      set(_CMAKE_CLANG_TIDY "${CLANG_TIDY_COMMAND}"
+      set(_CMAKE_CLANG_TIDY "${clang_tidy_command}"
         CACHE STRING
         "default clang-tidy C/C++ command line for linting files"
       )
@@ -89,7 +89,7 @@ function(setup_integrated_linters)
       # cppcheck by default should not stop the build when reporting errors, see:
       #   - https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmcmd.cxx#L529
       #   (this can be toggled with --error-exitcode)
-      list(APPEND CPPCHECK_COMMAND
+      list(APPEND cppcheck_command
         "${CPPCHECK_BINARY}"
         # checks not needed for any target source
         "--disable=missingInclude,unusedFunction"
@@ -99,7 +99,7 @@ function(setup_integrated_linters)
         # suppress errors from code included from fetched dependencies
         "--suppress=*:*${CMAKE_BINARY_DIR}/_deps/*"
       )
-      set(_CMAKE_CPPCHECK "${CPPCHECK_COMMAND}" CACHE STRING
+      set(_CMAKE_CPPCHECK "${cppcheck_command}" CACHE STRING
         "default cppcheck C/C++ command line for linting files")
     else()
       message(WARNING "cppcheck not found, skipping use as linter")
@@ -117,16 +117,16 @@ function(setup_integrated_linters)
     if(CPPLINT_BINARY)
       # no cmake attempt to find CPPLINT.cfg, as linter will perform its own
       #   search when it runs in targets' source directories
-      list(APPEND CPPLINT_COMMAND
+      list(APPEND cpplint_command
         "${CPPLINT_BINARY}"
       )
       # cpplint errors will never stop the build and are only issued as warnings
       #   (plain text, not message(WARNING),) see:
       #   - https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmcmd.cxx#L475
-      list(APPEND CPPLINT_COMMAND
+      list(APPEND cpplint_command
         "--filter=-legal,-build/include_subdir"
       )
-      set(_CMAKE_CPPLINT "${CPPLINT_COMMAND}" CACHE STRING
+      set(_CMAKE_CPPLINT "${cpplint_command}" CACHE STRING
         "default cpplint C/C++ command line for linting files")
     else()
       message(WARNING "cpplint not found, skipping use as linter")
@@ -146,16 +146,14 @@ function(setup_integrated_linters)
       #   message(WARNING)) unless using --error to set exit code, see:
       #   - https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmcmd.cxx#L363
       # -Xiwyu needed before every iwyu option other than --version and --help
-      list(APPEND IWYU_COMMAND
+      list(APPEND iwyu_command
         "${IWYU_BINARY}"
       )
-      set(_CMAKE_IWYU
-        "${IWYU_COMMAND}" CACHE STRING
+      set(_CMAKE_IWYU "${iwyu_command}" CACHE STRING
         "default include-what-you-use C/C++ command line for linting files")
     else()
       message(WARNING "include-what-you-use not found, skipping use as linter")
-      set(_CMAKE_IWYU
-        "${IWYU_BINARY}" CACHE STRING
+      set(_CMAKE_IWYU "${IWYU_BINARY}" CACHE STRING
         "default include-what-you-use C/C++ command line for linting files")
     endif()
   endif()
