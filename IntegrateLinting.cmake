@@ -72,10 +72,6 @@ function(setup_integrated_linters)
       )
     else()
       message(WARNING "clang-tidy not found, skipping use as linter")
-      set(_CMAKE_CLANG_TIDY "${CLANG_TIDY_BINARY}"
-        CACHE STRING
-        "default clang-tidy C/C++ command line for linting files"
-      )
     endif()
   endif()
 
@@ -103,8 +99,6 @@ function(setup_integrated_linters)
         "default cppcheck C/C++ command line for linting files")
     else()
       message(WARNING "cppcheck not found, skipping use as linter")
-      set(_CMAKE_CPPCHECK "${CPPCHECK_BINARY}" CACHE STRING
-        "default cppcheck C/C++ command line for linting files")
     endif()
   endif()
 
@@ -130,8 +124,6 @@ function(setup_integrated_linters)
         "default cpplint C/C++ command line for linting files")
     else()
       message(WARNING "cpplint not found, skipping use as linter")
-      set(_CMAKE_CPPLINT "${CPPLINT_BINARY}" CACHE STRING
-        "default cpplint C/C++ command line for linting files")
     endif()
   endif()
 
@@ -153,8 +145,6 @@ function(setup_integrated_linters)
         "default include-what-you-use C/C++ command line for linting files")
     else()
       message(WARNING "include-what-you-use not found, skipping use as linter")
-      set(_CMAKE_IWYU "${IWYU_BINARY}" CACHE STRING
-        "default include-what-you-use C/C++ command line for linting files")
     endif()
   endif()
 
