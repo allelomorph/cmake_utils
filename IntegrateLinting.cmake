@@ -92,9 +92,13 @@ function(setup_integrated_linters)
         "--enable=all"
         # end build on cppcheck error
         "--error-exitcode=1"
-        # suppress errors from code included from fetched dependencies
-        "--suppress=*:*${CMAKE_BINARY_DIR}/_deps/*"
       )
+      if(DEFINED FETCHCONTENT_BASE_DIR)
+        list(APPEND cppcheck_command
+          # suppress errors from code included from fetched dependencies
+          "--suppress=*:*${FETCHCONTENT_BASE_DIR}/*"
+        )
+      endif()
       set(_CMAKE_CPPCHECK "${cppcheck_command}" CACHE STRING
         "default cppcheck C/C++ command line for linting files")
     else()
