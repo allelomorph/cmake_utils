@@ -16,12 +16,11 @@ endmacro()
 # OpenCV configuration variables and descriptions taken from:
 #   - https://docs.opencv.org/4.10.0/db/d05/tutorial_config_reference.html
 #   - https://github.com/opencv/opencv/blob/4.10.0/doc/tutorials/introduction/config_reference/config_reference.markdown
-# Note that for any config variable that also has a call to ocv_option()/
-#   OCV_OPTION()/option() in OpenCV source, so any docstrings set here will be
-#   overwritten by the ones passed in OpenCV source (CMake option() does not
-#   overwrite cached values, but sets new docstring with every call.) So
-#   docstrings for relevant options here match those in OpenCV source,
-#   original ones start with 'OpenCV: '.
+# Note that CMake option() does not overwrite cached values, but does set a new
+#   docstring with every call. So for any config variable here that also has a
+#   call to ocv_option()/OCV_OPTION()/option() in OpenCV source, docstrings here
+#   will match those in the source to reduce confusion. Original docstrings will
+#   start with 'OpenCV: '.
 
 
 
