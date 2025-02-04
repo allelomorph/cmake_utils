@@ -49,6 +49,12 @@ function(setup_integrated_linters)
     return()
   endif()
 
+  # (idempotent)
+  define_property(TARGET
+integrated_linting    PROPERTY INTEGRATED_LINTING
+    BRIEF_DOCS "boolean indicating target linting setup via integrate_linting()"
+  )
+
   # set prefix of clang-tidy command line for all targets
   if(NOT SKIP_ALL_CLANG_TIDY AND
       NOT DEFINED CACHE{_CMAKE_CLANG_TIDY})
@@ -462,5 +468,9 @@ integrate_linting(IWYU_ARGS), it will be auto-populated")
     endif()
 
   endif()
+
+  # more efficient than querying set of C(XX)_<linter> properties
+  set_target_properties(${target} PROPERTIES
+    INTEGRATED_LINTING TRUE)
 
 endfunction()

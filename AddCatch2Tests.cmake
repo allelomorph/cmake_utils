@@ -28,6 +28,15 @@ function(add_catch2_tests target)
     return()
   endif()
 
+  # custom target property set by setup_integrated_linters()
+  get_target_property(integrated_linting ${target}
+    INTEGRATED_LINTING)
+  if(integrated_linting)
+    message(WARNING "Adding linting to a target with integrate_linting() is \
+best done _after_ calling add_catch2_tests() to ensure that Catch2 headers are \
+treated like system headers and thus not generate errors from expanded macros.")
+  endif()
+
   set(options MEMCHECK)
   set(single_value_args TEST_NAME_REGEX)
   set(multi_value_args)
