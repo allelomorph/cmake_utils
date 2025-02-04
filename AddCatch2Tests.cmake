@@ -81,7 +81,8 @@ treated like system headers and thus not generate errors from expanded macros.")
   if(_MEMCHECK)
     if(NOT CTEST_MEMCHECK_ENABLED)
       message(FATAL_ERROR
-        "please use init_ctest() to set up memcheck prior to adding tests")
+        "adding tests with MEMCHECK enabled requires proper setup of memcheck \
++via init_ctest() parameters")
     endif()
     list(APPEND ctest_command
       "--test-action" "memcheck"
