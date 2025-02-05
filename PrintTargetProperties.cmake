@@ -1,100 +1,196 @@
-# TBD re-evaluate supported versions
-cmake_minimum_required(VERSION 3.16)
+# TBD re-evaluate supported versions, string(JOIN) v3.12, if(CACHE{}) v3.14
+cmake_minimum_required(VERSION 3.14)
 
 include_guard(DIRECTORY)
 
-# Functions below adapted from https://stackoverflow.com/q/32183975
-
-# get_cmake_property_list()
-#   finds all available properties for targets in the current configuration, and
-#     exports to the parent scope the lists CMAKE_PROPERTY_LIST (properties on
-#     non-interface targets) and CMAKE_WHITELISTED_PROPERTY_LIST (properties on
-#     interface targets)
+# set_cmake_property_lists()
+#   Caches lists of potential target properties for targets from parsing
+#     `cmake --help-property-list`, setting the following variables:
+#     - CMAKE_NO_INFIX_PROPERTY_LIST
+#     - CMAKE_CONFIG_INFIX_PROPERTY_LIST
+#     - CMAKE_LANG_INFIX_PROPERTY_LIST
+#     - CMAKE_NAME_INFIX_PROPERTY_LIST
+#     - CMAKE_OTHER_INFIX_PROPERTY_LIST
+#     - CMAKE_UNREADABLE_PROPERTIES
 #
-function(get_cmake_property_list)
-  # Get all propreties supported by current cmake version
-  execute_process(COMMAND
-    cmake --help-property-list OUTPUT_VARIABLE cmake_property_list)
-  # Convert command output to list
-  string(REGEX REPLACE ";" "\\\\;" cmake_property_list "${cmake_property_list}")
-  string(REGEX REPLACE "\n" ";" cmake_property_list "${cmake_property_list}")
-
-  # Populate "<CONFIG>" with available_config_types
-  set(available_config_types ${CMAKE_CONFIGURATION_TYPES})
-  list(APPEND available_config_types ${CMAKE_BUILD_TYPE})
-  list(TRANSFORM available_config_types TOUPPER)
-  set(config_lines ${cmake_property_list})
-  list(FILTER config_lines INCLUDE REGEX "<CONFIG>")
-  list(FILTER cmake_property_list EXCLUDE REGEX "<CONFIG>")
-  foreach(config_line IN LISTS config_lines)
-    foreach(config IN LISTS available_config_types)
-      string(REPLACE "<CONFIG>" "${config}" new_config_line "${config_line}")
-      list(APPEND cmake_property_list ${new_config_line})
-    endforeach()
-  endforeach()
-
-  # Populate "<LANG>" with supported_langs
-  # Hardcoded list of languages, see:
-  #   - https://cmake.org/cmake/help/latest/command/project.html#options
-  #   - https://stackoverflow.com/a/44477728/240845
-  # These could be individually verified with check_language(<lang>)
-  set(supported_langs
-    ASM-ATT ASM ASM_MASM ASM_NASM
-    C CSHARP CUDA CXX FORTRAN HIP ISPC
-    JAVA OBJC OBJCXX RC SWIFT
+#   For versions of cmake below 3.19, calling get_target_property() on
+#     INTERFACE targets with non-whitelisted properties will throw errors, see:
+#     - https://cmake.org/cmake/help/v3.18/manual/cmake-buildsystem.7.html#interface-libraries
+#     - https://discourse.cmake.org/t/how-to-find-current-interface-library-property-whitelist/4784/2
+#   In that case, additional variables are cached:
+#     - CMAKE_NO_INFIX_PROPERTY_WHITELIST
+#     - CMAKE_CONFIG_INFIX_PROPERTY_WHITELIST
+#
+#   Originally based on these solutions:
+#     - https://stackoverflow.com/a/34292622
+#     - https://stackoverflow.com/a/74215868
+#
+function(set_cmake_property_lists)
+  set(need_to_set_lists FALSE)
+  if(NOT DEFINED CACHE{CMAKE_NO_INFIX_PROPERTY_LIST} OR
+      NOT DEFINED CACHE{CMAKE_CONFIG_INFIX_PROPERTY_LIST} OR
+      NOT DEFINED CACHE{CMAKE_LANG_INFIX_PROPERTY_LIST} OR
+      NOT DEFINED CACHE{CMAKE_NAME_INFIX_PROPERTY_LIST} OR
+      NOT DEFINED CACHE{CMAKE_OTHER_INFIX_PROPERTY_LIST}
     )
-  set(lang_lines ${cmake_property_list})
-  list(FILTER lang_lines INCLUDE REGEX "<LANG>")
-  list(FILTER cmake_property_list EXCLUDE REGEX "<LANG>")
-  foreach(lang_line IN LISTS lang_lines)
-    foreach(lang IN LISTS supported_langs)
-      string(REPLACE "<LANG>" "${lang}" new_lang_line "${lang_line}")
-      list(APPEND cmake_property_list ${new_lang_line})
-    endforeach()
-  endforeach()
+    set(need_to_set_lists TRUE)
+  endif()
 
-  # TBD Other target property wildcards ignored for now:
-  # - LIBRARY       eg LINK_LIBRARY_OVERRIDE_<LIBRARY>
-  # - NAME          eg CXX_MODULE_DIRS_<NAME>;CXX_MODULE_SET_<NAME>;
-  #                    HEADER_DIRS_<NAME>;HEADER_SET_<NAME>
-  # - an-attribute  eg XCODE_ATTRIBUTE_<an-attribute>
-  # - refname       eg VS_DOTNET_REFERENCE_<refname>,
-  #                    VS_DOTNET_REFERENCEPROP_<refname>_TAG_<tagname>
-  # - tool          eg VS_SOURCE_SETTINGS_<tool>
-  # - type          eg XCODE_EMBED_<type>;XCODE_EMBED_<type>_CODE_SIGN_ON_COPY;
-  #                    XCODE_EMBED_<type>_PATH;XCODE_EMBED_<type>_REMOVE_HEADERS_ON_COPY
-  # - variable      eg VS_GLOBAL_<variable>
+  set(need_to_set_whitelists FALSE)
+  if(CMAKE_VERSION VERSION_LESS "3.19" AND
+      (NOT DEFINED CACHE{CMAKE_NO_INFIX_PROPERTY_WHITELIST} OR
+        NOT DEFINED CACHE{CMAKE_CONFIG_INFIX_PROPERTY_WHITELIST})
+    )
+    set(need_to_set_whitelists TRUE)
+  endif()
+
+  if(NOT (need_to_set_lists OR need_to_set_whitelists))
+    return()
+  endif()
+
+  # Get all propreties supported by current cmake version
+  #   (note that this will be a mixed list of GLOBAL, DIRECTORY, TARGET, SOURCE,
+  #   INSTALL, TEST, CACHE properties)
+  execute_process(
+    COMMAND cmake --help-property-list
+    OUTPUT_VARIABLE help_property_list
+  )
+  # Convert output to list
+  string(REGEX REPLACE ";" "\\\\;" help_property_list "${help_property_list}")
+  string(REGEX REPLACE "\n" ";" help_property_list "${help_property_list}")
+  # output should already be sorted and unique, but cleaning anyway
+  list(REMOVE_DUPLICATES help_property_list)
+  list(SORT help_property_list)
 
   # Directly reading LOCATION property violates CMP0026, see:
   #   - https://stackoverflow.com/a/58244245
   #   - https://stackoverflow.com/q/32197663
+  # Producing errors such as:
+  #   "The LOCATION property may not be read from target "<target>".  Use the
+  #   target name directly with add_custom_command, or use the generator
+  #   expression $<TARGET_FILE>, as appropriate."
   # If config-time reading of LOCATION is still only deprecated and not disabled,
   #   one could use `cmake_policy(PUSH) cmake_policy(SET CMP0026 OLD)` before
   #   and `cmake_policy(POP)` after calls to get_target_property, although this
   #   will emit warnings
-  list(FILTER cmake_property_list EXCLUDE REGEX "^LOCATION$|^LOCATION_|_LOCATION$")
-  list(REMOVE_DUPLICATES cmake_property_list)
-  list(SORT cmake_property_list)
+  set(unreadable_location_properties
+    # IMPORTED_LOCATION  # no error
+    LOCATION
+    LOCATION_<CONFIG>
+    MACOSX_PACKAGE_LOCATION
+    VS_DEPLOYMENT_LOCATION
+  )
 
-  # Attempting to get properties on INTERFACE targets that are not whitelisted
-  #   for that purpose will result in warnings/errors, see:
-  #   https://cmake.org/cmake/help/v3.18/manual/cmake-buildsystem.7.html#interface-libraries
-  # cmake 3.19 and above may not make such a distinction, see:
-  #   https://discourse.cmake.org/t/how-to-find-current-interface-library-property-whitelist/4784/2
-  set(cmake_whitelisted_property_list ${cmake_property_list})
-  list(FILTER cmake_whitelisted_property_list INCLUDE REGEX
-    "^(COMPATIBLE_INTERFACE_(BOOL|NUMBER_MAX|NUMBER_MIN|STRING)|EXPORT_NAME|EXPORT_PROPERTIES|IMPORTED(|_LIBNAME_[_A-Z]*)|INTERFACE_[_A-Z]*|MANUALLY_ADDED_DEPENDENCIES|MAP_IMPORTED_CONFIG_[_A-Z]*|NAME|NO_SYSTEM_FROM_IMPORTED|TYPE)$")
+  if(need_to_set_lists)
+    set(property_list ${help_property_list})
 
-  set(CMAKE_PROPERTY_LIST ${cmake_property_list} PARENT_SCOPE)
-  set(CMAKE_WHITELISTED_PROPERTY_LIST ${cmake_whitelisted_property_list} PARENT_SCOPE)
-endfunction(get_cmake_property_list)
+    set(config_property_list ${property_list})
+    list(FILTER config_property_list INCLUDE REGEX "<CONFIG>")
+    list(FILTER property_list EXCLUDE REGEX "<CONFIG>")
 
-# build CMAKE_PROPERTY_LIST and CMAKE_WHITELISTED_PROPERTY_LIST for use by
-#   print_target_properties
-get_cmake_property_list()
+    set(lang_property_list ${property_list})
+    list(FILTER lang_property_list INCLUDE REGEX "<LANG>")
+    list(FILTER property_list EXCLUDE REGEX "<LANG>")
+
+    set(name_property_list ${property_list})
+    list(FILTER name_property_list INCLUDE REGEX "<NAME>")
+    list(FILTER property_list EXCLUDE REGEX "<NAME>")
+
+    set(other_infix_property_list ${property_list})
+    list(FILTER other_infix_property_list INCLUDE REGEX "<[A-Za-z]+>")
+    list(FILTER property_list EXCLUDE REGEX "<[A-Za-z]+>")
+
+    set(CMAKE_NO_INFIX_PROPERTY_LIST "${property_list}"
+      CACHE STRING
+      "potential properties for this version of cmake with no <> infix"
+      FORCE)
+    set(CMAKE_CONFIG_INFIX_PROPERTY_LIST "${config_property_list}"
+      CACHE STRING
+      "potential properties for this version of cmake with <CONFIG> infix"
+      FORCE)
+    set(CMAKE_LANG_INFIX_PROPERTY_LIST "${lang_property_list}"
+      CACHE STRING
+      "potential properties for this version of cmake with <LANG> infix"
+      FORCE)
+    set(CMAKE_NAME_INFIX_PROPERTY_LIST "${name_property_list}"
+      CACHE STRING
+      "potential properties for this version of cmake with <NAME> infix"
+      FORCE)
+    # TBD Other property wildcards ignored for now, eg:
+    # - LIBRARY       eg LINK_LIBRARY_OVERRIDE_<LIBRARY>
+    # - refname       eg VS_DOTNET_REFERENCE_<refname>,
+    #                    VS_DOTNET_REFERENCEPROP_<refname>_TAG_<tagname>
+    # - tool          eg VS_SOURCE_SETTINGS_<tool>
+    # - type          eg XCODE_EMBED_<type>;XCODE_EMBED_<type>_CODE_SIGN_ON_COPY;
+    #                    XCODE_EMBED_<type>_PATH;XCODE_EMBED_<type>_REMOVE_HEADERS_ON_COPY
+    # - variable      eg VS_GLOBAL_<variable>
+    set(CMAKE_OTHER_INFIX_PROPERTY_LIST "${other_infix_property_list}"
+      CACHE STRING
+      "potential properties for this version of cmake with <> infixes /
+other than CONFIG, LANG, or NAME"
+      FORCE)
+    set(CMAKE_UNREADABLE_PROPERTIES "${unreadable_location_properties}"
+      CACHE STRING
+      "properties which are unreadable at config time (eg LOCATION) - consider
+using genex alternatives"
+      FORCE
+    )
+    mark_as_advanced(FORCE
+      CMAKE_NO_INFIX_PROPERTY_LIST
+      CMAKE_CONFIG_INFIX_PROPERTY_LIST
+      CMAKE_LANG_INFIX_PROPERTY_LIST
+      CMAKE_NAME_INFIX_PROPERTY_LIST
+      CMAKE_OTHER_INFIX_PROPERTY_LIST
+      CMAKE_UNREADABLE_PROPERTIES
+    )
+
+  endif()
+
+  if(need_to_set_whitelists)
+    set(property_whitelist ${help_property_list})
+    # all regex items but NO_SYSTEM_FROM_IMPORTED and TYPE dervied from:
+    #  - https://cmake.org/cmake/help/v3.18/manual/cmake-buildsystem.7.html#interface-libraries
+    string(JOIN "" whitelist_regex
+      "^("
+      "COMPATIBLE_INTERFACE_.+|"
+      "EXPORT_NAME|"
+      "EXPORT_PROPERTIES|"
+      "IMPORTED|"
+      "IMPORTED_LIBNAME_.+|"
+      "INTERFACE_.+|"
+      "MANUALLY_ADDED_DEPENDENCIES|"
+      "MAP_IMPORTED_CONFIG_.+|"
+      "NAME|"
+      "NO_SYSTEM_FROM_IMPORTED|"
+      "TYPE"
+      ")$")
+    list(FILTER property_whitelist INCLUDE REGEX "${whitelist_regex}")
+
+    # only expecting <CONFIG> infixes after above filter
+    set(config_property_whitelist ${property_whitelist})
+    list(FILTER config_property_whitelist INCLUDE REGEX "<CONFIG>")
+    list(FILTER property_whitelist EXCLUDE REGEX "<CONFIG>")
+
+    set(CMAKE_NO_INFIX_PROPERTY_WHITELIST "${property_whitelist}"
+      CACHE STRING
+      "potential INTERFACE target properties for this version of cmake with /
+no <> infix that are whitelisted for get_target_property()"
+      FORCE)
+    set(CMAKE_CONFIG_INFIX_PROPERTY_WHITELIST "${config_property_whitelist}"
+      CACHE STRING
+      "potential INTERFACE target properties for this version of cmake with /
+<CONFIG> infix that are whitelisted for get_target_property()"
+      FORCE)
+    mark_as_advanced(FORCE
+      CMAKE_NO_INFIX_PROPERTY_WHITELIST
+      CMAKE_CONFIG_INFIX_PROPERTY_WHITELIST
+    )
+  endif()
+
+endfunction()
 
 # print_target_properties(target)
-#   debug print of all properties and their values for a given target
+#   debug print of all set properties values for a given target
 #
 #   target (string): target to test
 #
@@ -103,17 +199,76 @@ function(print_target_properties target)
     return()
   endif()
 
+  # idempotent
+  set_cmake_property_lists()
+
+  set(whitelist_only FALSE)
   get_target_property(target_type ${target} TYPE)
-  if(target_type STREQUAL "INTERFACE_LIBRARY")
-    set(properties ${CMAKE_WHITELISTED_PROPERTY_LIST})
-  else()
-    set(properties ${CMAKE_PROPERTY_LIST})
+  if(CMAKE_VERSION VERSION_LESS "3.19" AND
+      "${target_type}" STREQUAL "INTERFACE")
+    set(whitelist_only TRUE)
   endif()
+
+  if(whitelist_only)
+    set(properties        ${CMAKE_NO_INFIX_PROPERTY_WHITELIST})
+    set(config_properties ${CMAKE_CONFIG_INFIX_PROPERTY_WHITELIST})
+  else()
+    set(properties        ${CMAKE_NO_INFIX_PROPERTY_LIST})
+    set(config_properties ${CMAKE_CONFIG_INFIX_PROPERTY_LIST})
+    set(lang_properties   ${CMAKE_LANG_INFIX_PROPERTY_LIST})
+    set(name_properties   ${CMAKE_NAME_INFIX_PROPERTY_LIST})
+  endif()
+
+  list(JOIN CMAKE_UNREADABLE_PROPERTIES "|" unreadable_prop_regex)
+  string(PREPEND unreadable_prop_regex "^(")
+  string(APPEND unreadable_prop_regex ")$")
+  list(FILTER properties EXCLUDE REGEX "${unreadable_prop_regex}")
+
+  # populate "<CONFIG>" infix with any defined config types
+  set(available_configs ${CMAKE_CONFIGURATION_TYPES})
+  if(NOT ${CMAKE_BUILD_TYPE} IN_LIST available_configs)
+    list(APPEND available_configs ${CMAKE_BUILD_TYPE})
+  endif()
+  foreach(config_prop IN LISTS config_properties)
+    if(NOT ${config_prop} IN_LIST CMAKE_UNREADABLE_PROPERTIES)
+      foreach(config IN LISTS available_configs)
+        string(TOUPPER "${config}" config)
+        string(REPLACE "<CONFIG>" "${config}" infixed_prop "${config_prop}")
+        list(APPEND properties ${infixed_prop})
+      endforeach()
+    endif()
+  endforeach()
+
+  if(NOT whitelist_only)
+    # populate "<LANG>" infix with any defined target languages
+    get_target_property(target_lang ${target} LANGUAGE)
+    if(target_lang)
+      foreach(lang_prop IN LISTS lang_properties)
+        if(NOT ${lang_prop} IN_LIST CMAKE_UNREADABLE_PROPERTIES)
+          string(REPLACE "<LANG>" "${target_lang}" infixed_prop "${lang_prop}")
+          list(APPEND properties ${infixed_prop})
+        endif()
+      endforeach()
+    endif()
+
+    # populate "<NAME>" infix with target name
+    get_target_property(target_name ${target} NAME)
+    if(target_name)
+      foreach(name_prop IN LISTS name_properties)
+        if(NOT ${name_prop} IN_LIST CMAKE_UNREADABLE_PROPERTIES)
+          string(REPLACE "<NAME>" "${target_name}" infixed_prop "${name_prop}")
+          list(APPEND properties ${infixed_prop})
+        endif()
+      endforeach()
+    endif()
+  endif(NOT whitelist_only)
+
   message("Properties of target ${target}:")
   foreach(property ${properties})
     get_target_property(value ${target} ${property})
     if(NOT value MATCHES "NOTFOUND$")
       message("    ${property}: ${value}")
     endif()
-  endforeach(property)
-endfunction(print_target_properties)
+  endforeach()
+
+endfunction()
