@@ -33,7 +33,8 @@ include_guard(DIRECTORY)
 #     toggles memcheck generating suppressions file
 #   CTEST_MODULE_VARIABLES          (list, optional):
 #     allows for passing of variables comsumed by CTest module, in
-#       <variable> <value> [<value> ...] format; most are passed directly,
+#       <variable> <value> [<value> ...] format (see above link to dashboard
+#       client configuration for full list); most are passed directly,
 #       but memtest step variables are specially handled:
 #       CUDA_SANITIZER_COMMAND
 #       CUDA_SANITIZER_COMMAND_OPTIONS
@@ -49,7 +50,8 @@ include_guard(DIRECTORY)
 #       VALGRIND_COMMAND_OPTIONS
 #   OVERRIDE_CACHED                 (bool, optional):
 #     the CTest module caches some variables, so unless this is true,
-#       user-provided values for the following will be ignored:
+#       user-provided values for the following will be ignored when passed
+#       via CTEST_MODULE_VARIABLES:
 #       BZRCOMMAND
 #       COVERAGE_COMMAND
 #       COVERAGE_EXTRA_FLAGS
@@ -84,21 +86,26 @@ macro(init_ctest)
   #   listfile scope to allow for CTestTestfile generation
   enable_testing()
 
-  set(_INIT_CTEST_IMPL_INTERNAL_CALL YES)
+  set(_inside_init_ctest YES)
   _init_ctest_impl(${ARGN})
-  unset(_INIT_CTEST_IMPL_INTERNAL_CALL)
+  unset(_inside_init_ctest)
 
 endmacro()
 
 # _init_ctest_impl()
-#   Implementation details of init_ctest(), all args are passed in unmodified.
+#   Implementation details of init_ctest(). All parameters are passed in
+#     unmodified.
 #
 function(_init_ctest_impl)
 
-  if(NOT _INIT_CTEST_IMPL_INTERNAL_CALL)
+  if(NOT _inside_init_ctest)
     message(FATAL_ERROR
       "_init_ctest_impl() can only be called as part of init_ctest()")
   endif()
+
+  ##
+  ## parse (init_ctest) parameters to ICT_<param>
+  ##
 
   set(options
     MEMCHECK
@@ -111,11 +118,15 @@ function(_init_ctest_impl)
   set(multi_value_args
     CTEST_MODULE_VARIABLES
   )
-  cmake_parse_arguments(""
+  cmake_parse_arguments("ICT"
     "${options}" "${single_value_args}" "${multi_value_args}" ${ARGN}
   )
 
-  # second parsing for possible module variables, see:
+  ##
+  ## parse ICT_CTEST_MODULE_VARIABLES into MV_<module variable>
+  ##
+
+  # possible CTest module variables:
   #   - https://cmake.org/cmake/help/v3.31/manual/ctest.1.html#dashboard-client-configuration
   set(option_modvars
   )
@@ -186,10 +197,13 @@ function(_init_ctest_impl)
   )
   cmake_parse_arguments("MV"
     "${option_modvars}" "${single_value_modvars}" "${multi_value_modvars}"
-    ${_CTEST_MODULE_VARIABLES}
+    ${ICT_CTEST_MODULE_VARIABLES}
   )
 
-  # CTest sets some variables to the cache, which will shadow local definitions
+  ##
+  ## set up override of CTest module caching of defaults for some variables
+  ##
+
   set(cached_modvars
     BZRCOMMAND
     COVERAGE_COMMAND
@@ -208,22 +222,29 @@ function(_init_ctest_impl)
     SITE
     SVNCOMMAND
   )
-  if(NOT _OVERRIDE_CACHED)
+  if(NOT ICT_OVERRIDE_CACHED)
     foreach(modvar ${cached_modvars})
       if(MV_${modvar})
         list(APPEND warning_modvars ${modvar})
       endif()
     endforeach()
-    list(JOIN warning_modvars ", " warning_modvars)
-    message(WARNING "init_ctest(): the following CTest module variables:
-${warning_modvars}
-may be ignored unless OVERRIDE_CACHED is ON")
+    list(JOIN warning_modvars " " warning_modvars)
+    # indent cmake warnings and errors to skip autoformatting, see:
+    #   - https://stackoverflow.com/a/51035045
+    message(WARNING
+      " init_ctest(): the following CTest module variables:\n"
+      "     ${warning_modvars}\n"
+      " may be ignored by module unless init_ctest(OVERRIDE_CACHED) is ON\n")
   endif()
 
-  # special handling of memcheck step variables, see:
+  ##
+  ## special handling of memcheck module variables
+  ##
+
+  # memcheck subset of CTest module variables, see:
   #   - https://cmake.org/cmake/help/v3.31/manual/ctest.1.html#ctest-memcheck-step
-  #
-  # TBD currently forcing valgrind use
+
+  # TBD allow memcheck tools other than valgrind
   if((MV_MEMORYCHECK_TYPE AND
         NOT MV_MEMORYCHECK_TYPE STREQUAL "Valgrind") OR
       MV_CUDA_SANITIZER_COMMAND OR
@@ -235,8 +256,8 @@ may be ignored unless OVERRIDE_CACHED is ON")
     message(FATAL_ERROR
       "init_ctest() currently only supports memcheck with valgrind")
   endif()
-  if(_MEMCHECK_FAILS_TEST OR
-      _MEMCHECK_GENERATES_SUPPRESSIONS OR
+  if(ICT_MEMCHECK_FAILS_TEST OR
+      ICT_MEMCHECK_GENERATES_SUPPRESSIONS OR
       MV_MEMORYCHECK_TYPE OR
       MV_MEMORYCHECK_COMMAND OR
       MV_MEMORYCHECK_COMMAND_OPTIONS OR
@@ -244,9 +265,9 @@ may be ignored unless OVERRIDE_CACHED is ON")
       MV_VALGRIND_COMMAND OR
       MV_VALGRIND_COMMAND_OPTIONS
     )
-    set(_MEMCHECK ON)
+    set(ICT_MEMCHECK ON)
   endif()
-  if(_MEMCHECK)
+  if(ICT_MEMCHECK)
     if(MV_MEMORYCHECK_COMMAND)
       set(memcheck_command ${MV_MEMORYCHECK_COMMAND})
     elseif(MV_VALGRIND_COMMAND)
@@ -270,13 +291,12 @@ may be ignored unless OVERRIDE_CACHED is ON")
       message(FATAL_ERROR
         "init_ctest() currently only supports memcheck with valgrind")
     endif()
-    if(_OVERRIDE_CACHED)
+    if(ICT_OVERRIDE_CACHED)
       unset(MEMORYCHECK_COMMAND CACHE)
     endif()
     set(MEMORYCHECK_COMMAND ${memcheck_command} CACHE FILEPATH
       "Path to the memory checking command, used for memory error detection."
     )
-
     if(MV_MEMORYCHECK_COMMAND_OPTIONS)
       set(memcheck_options ${MV_MEMORYCHECK_COMMAND_OPTIONS})
     elseif(MV_VALGRIND_COMMAND_OPTIONS)
@@ -289,29 +309,27 @@ may be ignored unless OVERRIDE_CACHED is ON")
         "--num-callers=50"
       )
     endif()
-    if(_MEMCHECK_FAILS_TEST)
+    if(ICT_MEMCHECK_FAILS_TEST)
       list(APPEND memcheck_options "--error-exitcode=255")
     endif()
-    if(_MEMCHECK_GENERATES_SUPPRESSIONS)
+    if(ICT_MEMCHECK_GENERATES_SUPPRESSIONS)
       list(APPEND memcheck_options "--gen-suppressions=all")
     endif()
     # join into CLI-friendly string, not a cached module variable
     list(JOIN memcheck_options " " MEMORYCHECK_COMMAND_OPTIONS)
-
     # MEMORYCHECK_SUPPRESSIONS_FILE cache set to "" in CTest, see:
     #   - https://github.com/Kitware/CMake/blob/v3.30.4/Modules/CTest.cmake#L181
     if(MV_MEMORYCHECK_SUPPRESSIONS_FILE)
-      if(_OVERRIDE_CACHED)
+      if(ICT_OVERRIDE_CACHED)
         unset(MEMORYCHECK_SUPPRESSIONS_FILE CACHE)
       endif()
       set(MEMORYCHECK_SUPPRESSIONS_FILE "${MV_MEMORYCHECK_SUPPRESSIONS_FILE}"
         CACHE FILEPATH
         "File that contains suppressions for the memory checker")
     endif()
-
-  endif()
-  set(CTEST_MEMCHECK_ENABLED ${_MEMCHECK} PARENT_SCOPE)
-  # memcheck variables handled above can skip batch processing
+  endif(ICT_MEMCHECK)
+  set(CTEST_MEMCHECK_ENABLED ${ICT_MEMCHECK} PARENT_SCOPE)
+  # memcheck variables handled above can skip batch processing in next step
   foreach(memcheck_modvar
       MV_CUDA_SANITIZER_COMMAND
       MV_CUDA_SANITIZER_COMMAND_OPTIONS
@@ -329,9 +347,11 @@ may be ignored unless OVERRIDE_CACHED is ON")
     unset(${memcheck_modvar})
   endforeach()
 
-  # batch process variables passed as parameters for consumption by CTest module
-  #
-  set(_SET_CTEST_MODVAR_INTERNAL_CALL YES)
+  ##
+  ## batch process all remaining module variables for consumption by CTest
+  ##
+
+  set(_inside_init_ctest_impl YES)
   foreach(modvar ${single_value_modvars})
     if(MV_${modvar})
       _set_ctest_modvar(${modvar} ${MV_${modvar}})
@@ -348,10 +368,12 @@ may be ignored unless OVERRIDE_CACHED is ON")
       _set_ctest_modvar(${modvar} "${list_as_string}")
     endif()
   endforeach()
-  unset(_SET_CTEST_MODVAR_INTERNAL_CALL)
+  unset(_inside_init_ctest_impl)
 
-  # CTest module consumes variables
-  #
+  ##
+  ## CTest module consumes variables to configure ctest
+  ##
+
   # use modern config file name CTestConfiguration.ini over traditional
   #   DartConfiguration.tcl
   set(CTEST_NEW_FORMAT ON)
@@ -366,13 +388,13 @@ endfunction()
 #
 macro(_set_ctest_modvar modvar value)
 
-  if(NOT _SET_CTEST_MODVAR_INTERNAL_CALL)
+  if(NOT _inside_init_ctest_impl)
     message(FATAL_ERROR
-      "_set_ctest_modvar() can only be called as part of init_ctest()")
+      "_set_ctest_modvar() can only be called as part of _init_ctest_impl()")
   endif()
 
   if("${modvar}" IN_LIST cached_modvars)
-    if(_OVERRIDE_CACHED)
+    if(ICT_OVERRIDE_CACHED)
       unset(${modvar} CACHE)
     endif()
     if("${modvar}" MATCHES "^.*COMMAND$")
