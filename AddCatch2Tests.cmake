@@ -3,10 +3,11 @@ cmake_minimum_required(VERSION 3.15)
 
 include_guard(DIRECTORY)
 
-# Catch2_VERSION
-# Catch2_VERSION_MAJOR
-# Catch2::Catch2WithMain
-include(GetCatch2)
+if(NOT (DEFINED Catch2_VERSION AND
+      DEFINED Catch2_VERSION_MAJOR AND
+      TARGET Catch2::Catch2WithMain))
+  include(GetCatch2)
+endif()
 
 if(NOT COMMAND catch_discover_tests)
   include(Catch)
@@ -18,7 +19,7 @@ endif()
 #     - https://github.com/catchorg/Catch2/blob/v3.4.0/docs/cmake-integration.md
 #
 #   target (string): tests target using Catch2
-#   MEMCHECK (bool, optional): toggles use of memcheck in tests
+#   MEMCHECK (bool, optional): toggles use of memcheck on tests in target
 #   TEST_NAME_REGEX (string, optional): regex to filter for tests in target
 #
 function(add_catch2_tests target)
@@ -37,12 +38,25 @@ best done _after_ calling add_catch2_tests() to ensure that Catch2 headers are \
 treated like system headers and thus not generate errors from expanded macros.")
   endif()
 
-  set(options MEMCHECK)
-  set(single_value_args TEST_NAME_REGEX)
-  set(multi_value_args)
-  cmake_parse_arguments(""
+  ##
+  ## parse arguments
+  ##
+
+  set(options
+    MEMCHECK
+  )
+  set(single_value_args
+    TEST_NAME_REGEX
+  )
+  set(multi_value_args
+  )
+  cmake_parse_arguments("AC2T"
     "${options}" "${single_value_args}" "${multi_value_args}" ${ARGN}
   )
+
+  ##
+  ## set up linking to Catch2
+  ##
 
   # _CATCH_VERSION_MAJOR intended to allow selective header inclusion to
   #   accommodate both Catch2 v2 and v3 (leading underscore to prevent shadowing
@@ -55,6 +69,10 @@ treated like system headers and thus not generate errors from expanded macros.")
     PRIVATE
       Catch2::Catch2WithMain
     )
+
+  ##
+  ## register Catch2 tests with ctest
+  ##
 
   # Each discovered test will be run as a separate process, and the Catch2 exit
   #   code for all tests skipped in a process is 4, see:
@@ -70,6 +88,10 @@ treated like system headers and thus not generate errors from expanded macros.")
     )
   endif()
 
+  ##
+  ## build ctest command
+  ##
+
   list(APPEND ctest_command
     "${CMAKE_CTEST_COMMAND}"
     # genex evaluated after passing to add_custom_command
@@ -78,7 +100,7 @@ treated like system headers and thus not generate errors from expanded macros.")
     #   errors on skipped tests use --verbose instead
     "--output-on-failure"
   )
-  if(_MEMCHECK)
+  if(AC2T_MEMCHECK)
     if(NOT CTEST_MEMCHECK_ENABLED)
       message(FATAL_ERROR
         "adding tests with MEMCHECK enabled requires proper setup of memcheck \
@@ -88,7 +110,7 @@ via init_ctest() parameters")
       "--test-action" "memcheck"
     )
   endif()
-  if(_TEST_NAME_REGEX)
+  if(AC2T_TEST_NAME_REGEX)
     # If dependencies are fetched and not found, during configuration
     #   dependencies may register their own tests; --tests-regex used here to
     #   filter out any tests not defiend in target. Would prefer to filter by
@@ -98,6 +120,11 @@ via init_ctest() parameters")
       "--tests-regex" "\"${_TEST_NAME_REGEX}\""
     )
   endif()
+
+  ##
+  ## hook ctest command to run after every build of target
+  ##
+
   add_custom_command(TARGET "${target}" POST_BUILD
     COMMAND ${ctest_command}
     # Run ctest in same directory as CTestConfiguration.ini/
