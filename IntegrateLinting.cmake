@@ -50,12 +50,15 @@ function(setup_integrated_linters)
   endif()
 
   # (idempotent)
-  define_property(TARGET
-integrated_linting    PROPERTY INTEGRATED_LINTING
+  define_property(TARGET PROPERTY
+    INTEGRATED_LINTING
     BRIEF_DOCS "boolean indicating target linting setup via integrate_linting()"
   )
 
-  # set prefix of clang-tidy command line for all targets
+  ##
+  ## set prefix of clang-tidy command line for all targets
+  ##
+
   if(NOT SKIP_ALL_CLANG_TIDY AND
       NOT DEFINED CACHE{_CMAKE_CLANG_TIDY})
     find_program(CLANG_TIDY_BINARY
@@ -81,7 +84,10 @@ integrated_linting    PROPERTY INTEGRATED_LINTING
     endif()
   endif()
 
-  # set prefix of cppcheck command line for all targets
+  ##
+  ## set prefix of cppcheck command line for all targets
+  ##
+
   if(NOT SKIP_ALL_CPPCHECK AND
       NOT DEFINED CACHE{_CMAKE_CPPCHECK})
     find_program(CPPCHECK_BINARY
@@ -112,7 +118,10 @@ integrated_linting    PROPERTY INTEGRATED_LINTING
     endif()
   endif()
 
-  # set prefix of cpplint command line for all targets
+  ##
+  ## set prefix of cpplint command line for all targets
+  ##
+
   if(NOT SKIP_ALL_CPPLINT AND
       NOT DEFINED CACHE{_CMAKE_CPPLINT})
     find_program(CPPLINT_BINARY
@@ -137,7 +146,10 @@ integrated_linting    PROPERTY INTEGRATED_LINTING
     endif()
   endif()
 
-  # set prefix of include-what-you-use command line for all targets
+  ##
+  ## set prefix of include-what-you-use command line for all targets
+  ##
+
   if(NOT SKIP_ALL_IWYU AND
       NOT DEFINED CACHE{_CMAKE_IWYU})
     find_program(IWYU_BINARY
@@ -187,11 +199,24 @@ function(integrate_linting target)
     return()
   endif()
 
+  if(NOT DEFINED CACHE{_CMAKE_CLANG_TIDY} OR
+      NOT DEFINED CACHE{_CMAKE_CPPCHECK} OR
+      NOT DEFINED CACHE{_CMAKE_CPPLINT} OR
+      NOT DEFINED CACHE{_CMAKE_IWYU})
+    setup_integrated_linters()
+  endif()
+
+  ##
+  ## parse arguments
+  ##
+
   set(options
     SKIP_CLANG_TIDY
     SKIP_CPPCHECK
     SKIP_CPPLINT
     SKIP_IWYU
+  )
+  set(single_value_args
   )
   set(multi_value_args
     CLANG_TIDY_ARGS
@@ -201,36 +226,37 @@ function(integrate_linting target)
   )
   cmake_parse_arguments(IL
     "${options}"
-    ""  # single value args
+    "${single_value_args}"
     "${multi_value_args}"
     ${ARGN}
   )
 
-  if(NOT DEFINED CACHE{_CMAKE_CLANG_TIDY} OR
-      NOT DEFINED CACHE{_CMAKE_CPPCHECK} OR
-      NOT DEFINED CACHE{_CMAKE_CPPLINT} OR
-      NOT DEFINED CACHE{_CMAKE_IWYU})
-    setup_integrated_linters()
-  endif()
+  ##
+  ## detect target source languages and standard (C and CXX only for now)
+  ##
 
   # TBD test langugage detection with INTERFACE or header-only targets
   get_target_property(c_standard "${target}" C_STANDARD)
   get_target_property(cxx_standard "${target}" CXX_STANDARD)
   get_target_property(sources "${target}" SOURCES)
   foreach(source ${sources})
-    get_source_file_property(${source}_LANGUAGE ${source} LANGUAGE)
-    if(${source}_LANGUAGE STREQUAL "C")
+    get_source_file_property(${source}_language ${source} LANGUAGE)
+    if(${source}_language STREQUAL "C")
       set(c_source_files TRUE)
       if(cxx_source_files)
         break()
       endif()
-    elseif(${source}_LANGUAGE STREQUAL "CXX")
+    elseif(${source}_language STREQUAL "CXX")
       set(cxx_source_files TRUE)
       if(c_source_files)
         break()
       endif()
     endif()
   endforeach()
+
+  ##
+  ## treat fetched dependency headers as system headers
+  ##
 
   # In order to avoid linters (or at least clang-tidy) parsing headers
   #   included from dependencies, we need to treat them as system headers.
@@ -262,102 +288,100 @@ function(integrate_linting target)
     endforeach()
   endif()
 
-  #
-  # append target-specfic options to clang-tidy command line
-  #
+  ##
+  ## append target-specfic options to clang-tidy command line
+  ##
+
   if(_CMAKE_CLANG_TIDY AND
       NOT SKIP_ALL_CLANG_TIDY AND
       NOT IL_SKIP_CLANG_TIDY)
-      # clang-tidy is only compatible with clang precompiled headers, see:
-      #   - https://stackoverflow.com/a/76932426
-      get_target_property(
-        interface_precompile_headers "${target}" INTERFACE_PRECOMPILE_HEADERS)
-      get_target_property(
-        precompile_headers "${target}" PRECOMPILE_HEADERS)
-      if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR  # Clang or AppleClang
-          NOT (interface_precompile_headers OR precompile_headers))
+    # Setting C|CXX_CLANG_TIDY causes this call at config time:
+    #   cmake -E __run_co_compile --tidy="<C|CXX_CLANG_TIDY after first token>" \
+    #     --source=<target source> -- <compile command>
+    #   https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmCommonTargetGenerator.cxx#L356
+    # which has build call:
+    #   <C|CXX_CLANG_TIDY (missing -p)> <target source> -- <compile command>
+    # (CMake recommends passing `-p compile_commands.json` to clang-tidy
+    #   to avoid problems when target compiler is not the system default.
+    #   However in practice parsing the entire file just to filter out
+    #   target source is not conducive to per-target linting, so we use the
+    #   fallback method, passing the compile command after --.)
+    #   https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmcmd.cxx#L374
 
-        # Setting C|CXX_CPPCHECK causes this call at config time:
-        #   cmake -E __run_co_compile --tidy="<C|CXX_CPPCHECK after first>" \
-        #     --source=<target source> -- <compile command>
-        #   https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmCommonTargetGenerator.cxx#L356
-        # which has build call:
-        #   <C|CXX_CLANG_TIDY (missing -p)> <target source> -- <compile command>
-        # (CMake recommends passing `-p compile_commands.json` to clang-tidy
-        #   to avoid problems when target compiler is not the system default.
-        #   However in practice parsing the entire file just to filter out
-        #   target source is not conducive to per-target linting, so we use the
-        #   fallback method, passing the compile command after --.)
-        #   https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmcmd.cxx#L374
+    # clang-tidy is only compatible with clang precompiled headers, see:
+    #   - https://stackoverflow.com/a/76932426
+    get_target_property(
+      interface_precompile_headers "${target}" INTERFACE_PRECOMPILE_HEADERS)
+    get_target_property(
+      precompile_headers "${target}" PRECOMPILE_HEADERS)
+    if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR  # Clang or AppleClang
+        NOT (interface_precompile_headers OR precompile_headers))
 
-        # TBD find any relevant .clang-tidy, determine interactions with CLI
+      # TBD find any relevant .clang-tidy, determine interactions with CLI
 
-        set(c_clang_tidy_cmd "${_CMAKE_CLANG_TIDY}")
-        set(cxx_clang_tidy_cmd "${_CMAKE_CLANG_TIDY}")
-
-        string(JOIN "," c_cxx_tidy_checks
-          "android-*"
-          "bugprone-*"
-          "cert-*-c"
-          "concurrency-*"
-          "fuschia-*"
-          "misc-*"
-        )
-        string(JOIN "," cxx_only_tidy_checks
-          "abseil-*"
-          "boost-*"
-          "cert-*-cpp"
-          "cppcoreguidelines-*"
-          "google-*"
-          "hicpp-*"
-          "modernize-*"
-          "performance-*"
-          "portability-*"
-          "readability-*"
-        )
-        list(APPEND c_clang_tidy_cmd
-          "--checks=${c_cxx_tidy_checks}")
-        list(APPEND cxx_clang_tidy_cmd
-          "--checks=${c_cxx_tidy_checks},${cxx_only_tidy_checks}")
-
-        if(IL_CLANG_TIDY_ARGS)
-          list(APPEND c_clang_tidy_cmd ${IL_CLANG_TIDY_ARGS})
-          list(APPEND cxx_clang_tidy_cmd ${IL_CLANG_TIDY_ARGS})
-        endif()
-
-        if(c_source_files)
-          set_target_properties("${target}" PROPERTIES
-            C_CLANG_TIDY "${c_clang_tidy_cmd}")
-        endif()
-        if(cxx_source_files)
-          set_target_properties("${target}" PROPERTIES
-            CXX_CLANG_TIDY "${cxx_clang_tidy_cmd}")
-        endif()
-
+      set(c_clang_tidy_cmd "${_CMAKE_CLANG_TIDY}")
+      set(cxx_clang_tidy_cmd "${_CMAKE_CLANG_TIDY}")
+      string(JOIN "," c_cxx_tidy_checks
+        "android-*"
+        "bugprone-*"
+        "cert-*-c"
+        "concurrency-*"
+        "fuschia-*"
+        "misc-*"
+      )
+      string(JOIN "," cxx_only_tidy_checks
+        "abseil-*"
+        "boost-*"
+        "cert-*-cpp"
+        "cppcoreguidelines-*"
+        "google-*"
+        "hicpp-*"
+        "modernize-*"
+        "performance-*"
+        "portability-*"
+        "readability-*"
+      )
+      list(APPEND c_clang_tidy_cmd
+        "--checks=${c_cxx_tidy_checks}")
+      list(APPEND cxx_clang_tidy_cmd
+        "--checks=${c_cxx_tidy_checks},${cxx_only_tidy_checks}")
+      if(IL_CLANG_TIDY_ARGS)
+        list(APPEND c_clang_tidy_cmd ${IL_CLANG_TIDY_ARGS})
+        list(APPEND cxx_clang_tidy_cmd ${IL_CLANG_TIDY_ARGS})
       endif()
+      if(c_source_files)
+        set_target_properties("${target}" PROPERTIES
+          C_CLANG_TIDY "${c_clang_tidy_cmd}")
+      endif()
+      if(cxx_source_files)
+        set_target_properties("${target}" PROPERTIES
+          CXX_CLANG_TIDY "${cxx_clang_tidy_cmd}")
+      endif()
+    endif()
+
   endif()
 
-  #
-  # append target-specfic options to cppcheck command line
-  #
+  ##
+  ## append target-specfic options to cppcheck command line
+  ##
+
   if(_CMAKE_CPPCHECK AND
       NOT SKIP_ALL_CPPCHECK AND
       NOT IL_SKIP_CPPCHECK)
     # Setting C|CXX_CPPCHECK causes this call at config time:
-    #   cmake -E __run_co_compile --cppcheck="<C|CXX_CPPCHECK after first>" \
+    #   cmake -E __run_co_compile --cppcheck="<C|CXX_CPPCHECK after first token>" \
     #     --source=<target source> -- <compile command>
     #   https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmCommonTargetGenerator.cxx#L356
     # which has build call:
     #   <C|CXX_CPPCHECK> <compiler -D -U -I options> <target source>
     #   https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmcmd.cxx#L478
 
-    set(c_cppcheck_cmd   "${_CMAKE_CPPCHECK}")
-    set(cxx_cppcheck_cmd "${_CMAKE_CPPCHECK}")
-
     # TBD find .cppcheck in target source dir -> project root dir path like
     #   clang-tidy and cpplint, determine interaction with CLI args, pass with
     #   --project
 
+    set(c_cppcheck_cmd   "${_CMAKE_CPPCHECK}")
+    set(cxx_cppcheck_cmd "${_CMAKE_CPPCHECK}")
     if(c_standard)
       if(c_standard EQUAL 90)
         list(APPEND c_cppcheck_cmd "--std=c89")
@@ -368,7 +392,6 @@ function(integrate_linting target)
     if(cxx_standard)
       list(APPEND cxx_cppcheck_cmd "--std=c++${cxx_standard}")
     endif()
-
     if(IL_CPPCHECK_ARGS)
       foreach(arg IL_CPPCHECK_ARGS)
         if("${arg}" MATCHES "^-(-std|[DIU])")
@@ -379,7 +402,6 @@ integrate_linting(CPPCHECK_ARGS), they will be auto-populated")
       list(APPEND c_cppcheck_cmd ${IL_CPPCHECK_ARGS})
       list(APPEND cxx_cppcheck_cmd ${IL_CPPCHECK_ARGS})
     endif()
-
     if(c_source_files)
       set_target_properties("${target}" PROPERTIES
         C_CPPCHECK "${c_cppcheck_cmd}")
@@ -391,14 +413,15 @@ integrate_linting(CPPCHECK_ARGS), they will be auto-populated")
 
   endif()
 
-  #
-  # append target-specfic options to cpplint command line
-  #
+  ##
+  ## append target-specfic options to cpplint command line
+  ##
+
   if(_CMAKE_CPPLINT AND
       NOT SKIP_ALL_CPPLINT AND
       NOT IL_SKIP_CPPLINT)
     # Setting C|CXX_CPPLINT causes this call at config time:
-    #   cmake -E __run_co_compile --cpplint="<C|CXX_CPPLINT after first>" \
+    #   cmake -E __run_co_compile --cpplint="<C|CXX_CPPLINT after first token>" \
     #     --source=<target source> -- <compile command>
     #   https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmCommonTargetGenerator.cxx#L356
     # which has build call:
@@ -408,11 +431,9 @@ integrate_linting(CPPCHECK_ARGS), they will be auto-populated")
     # TBD find CPPLINT.cfg, determine interaction with CLI args
 
     set(cpplint_cmd "${_CMAKE_CPPLINT}")
-
     if(IL_CPPLINT_ARGS)
       list(APPEND cpplint_cmd ${IL_CPPLINT_ARGS})
     endif()
-
     if(c_source_files)
       set_target_properties("${target}" PROPERTIES
         C_CPPLINT "${cpplint_cmd}")
@@ -424,14 +445,15 @@ integrate_linting(CPPCHECK_ARGS), they will be auto-populated")
 
   endif()
 
-  #
-  # append target-specfic options to include-what-you-use command line
-  #
+  ##
+  ## append target-specfic options to include-what-you-use command line
+  ##
+
   if(_CMAKE_IWYU AND
       NOT SKIP_ALL_IWYU AND
       NOT IL_SKIP_IWYU)
     # setting C|CXX_INCLUDE_WHAT_YOU_USE causes this call at config time:
-    #   cmake -E __run_co_compile --iwyu="<C|CXX_INCLUDE_WHAT_YOU_USE after first>" \
+    #   cmake -E __run_co_compile --iwyu="<C|CXX_INCLUDE_WHAT_YOU_USE after first token>" \
     #     --source=<target source> -- <compile command>
     #   https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmCommonTargetGenerator.cxx#L356
     # which has build call:
@@ -442,11 +464,9 @@ integrate_linting(CPPCHECK_ARGS), they will be auto-populated")
 
     set(c_iwyu_cmd "${_CMAKE_IWYU}")
     set(cxx_iwyu_cmd "${_CMAKE_IWYU}")
-
     if(_CXX_STANDARD GREATER_EQUAL 17)
       list(APPEND cxx_iwyu_cmd "-Xiwyu" "--cxx17ns")
     endif()
-
     if(IL_IWYU_ARGS)
       foreach(arg IL_IWYU_ARGS)
         if("${arg}" MATCHES "^--cxx17ns")
@@ -457,7 +477,6 @@ integrate_linting(IWYU_ARGS), it will be auto-populated")
       list(APPEND c_iwyu_cmd ${IL_IWYU_ARGS})
       list(APPEND cxx_iwyu_cmd ${IL_IWYU_ARGS})
     endif()
-
     if(c_source_files)
       set_target_properties("${target}" PROPERTIES
         C_INCLUDE_WHAT_YOU_USE "${c_iwyu_cmd}")
@@ -468,6 +487,10 @@ integrate_linting(IWYU_ARGS), it will be auto-populated")
     endif()
 
   endif()
+
+  ##
+  ## mark target with custom property denoting linting setup complete
+  ##
 
   # more efficient than querying set of C(XX)_<linter> properties
   set_target_properties(${target} PROPERTIES
