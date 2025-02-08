@@ -292,9 +292,18 @@ function(integrate_linting target)
   ## append target-specfic options to clang-tidy command line
   ##
 
+  get_target_property(
+    interface_precompile_headers "${target}" INTERFACE_PRECOMPILE_HEADERS)
+  get_target_property(
+    precompile_headers "${target}" PRECOMPILE_HEADERS)
   if(_CMAKE_CLANG_TIDY AND
       NOT SKIP_ALL_CLANG_TIDY AND
-      NOT IL_SKIP_CLANG_TIDY)
+      NOT IL_SKIP_CLANG_TIDY AND
+      # clang-tidy is only compatible with clang precompiled headers, see:
+      #   - https://stackoverflow.com/a/76932426
+      ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR  # Clang or AppleClang
+        NOT (interface_precompile_headers OR precompile_headers))
+    )
     # Setting C|CXX_CLANG_TIDY causes this call at config time:
     #   cmake -E __run_co_compile --tidy="<C|CXX_CLANG_TIDY after first token>" \
     #     --source=<target source> -- <compile command>
@@ -308,55 +317,45 @@ function(integrate_linting target)
     #   fallback method, passing the compile command after --.)
     #   https://github.com/Kitware/CMake/blob/v3.27.4/Source/cmcmd.cxx#L374
 
-    # clang-tidy is only compatible with clang precompiled headers, see:
-    #   - https://stackoverflow.com/a/76932426
-    get_target_property(
-      interface_precompile_headers "${target}" INTERFACE_PRECOMPILE_HEADERS)
-    get_target_property(
-      precompile_headers "${target}" PRECOMPILE_HEADERS)
-    if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR  # Clang or AppleClang
-        NOT (interface_precompile_headers OR precompile_headers))
+    # TBD find any relevant .clang-tidy, determine interactions with CLI
 
-      # TBD find any relevant .clang-tidy, determine interactions with CLI
-
-      set(c_clang_tidy_cmd "${_CMAKE_CLANG_TIDY}")
-      set(cxx_clang_tidy_cmd "${_CMAKE_CLANG_TIDY}")
-      string(JOIN "," c_cxx_tidy_checks
-        "android-*"
-        "bugprone-*"
-        "cert-*-c"
-        "concurrency-*"
-        "fuschia-*"
-        "misc-*"
-      )
-      string(JOIN "," cxx_only_tidy_checks
-        "abseil-*"
-        "boost-*"
-        "cert-*-cpp"
-        "cppcoreguidelines-*"
-        "google-*"
-        "hicpp-*"
-        "modernize-*"
-        "performance-*"
-        "portability-*"
-        "readability-*"
-      )
-      list(APPEND c_clang_tidy_cmd
-        "--checks=${c_cxx_tidy_checks}")
-      list(APPEND cxx_clang_tidy_cmd
-        "--checks=${c_cxx_tidy_checks},${cxx_only_tidy_checks}")
-      if(IL_CLANG_TIDY_ARGS)
-        list(APPEND c_clang_tidy_cmd ${IL_CLANG_TIDY_ARGS})
-        list(APPEND cxx_clang_tidy_cmd ${IL_CLANG_TIDY_ARGS})
-      endif()
-      if(c_source_files)
-        set_target_properties("${target}" PROPERTIES
-          C_CLANG_TIDY "${c_clang_tidy_cmd}")
-      endif()
-      if(cxx_source_files)
-        set_target_properties("${target}" PROPERTIES
-          CXX_CLANG_TIDY "${cxx_clang_tidy_cmd}")
-      endif()
+    set(c_clang_tidy_cmd "${_CMAKE_CLANG_TIDY}")
+    set(cxx_clang_tidy_cmd "${_CMAKE_CLANG_TIDY}")
+    string(JOIN "," c_cxx_tidy_checks
+      "android-*"
+      "bugprone-*"
+      "cert-*-c"
+      "concurrency-*"
+      "fuschia-*"
+      "misc-*"
+    )
+    string(JOIN "," cxx_only_tidy_checks
+      "abseil-*"
+      "boost-*"
+      "cert-*-cpp"
+      "cppcoreguidelines-*"
+      "google-*"
+      "hicpp-*"
+      "modernize-*"
+      "performance-*"
+      "portability-*"
+      "readability-*"
+    )
+    list(APPEND c_clang_tidy_cmd
+      "--checks=${c_cxx_tidy_checks}")
+    list(APPEND cxx_clang_tidy_cmd
+      "--checks=${c_cxx_tidy_checks},${cxx_only_tidy_checks}")
+    if(IL_CLANG_TIDY_ARGS)
+      list(APPEND c_clang_tidy_cmd ${IL_CLANG_TIDY_ARGS})
+      list(APPEND cxx_clang_tidy_cmd ${IL_CLANG_TIDY_ARGS})
+    endif()
+    if(c_source_files)
+      set_target_properties("${target}" PROPERTIES
+        C_CLANG_TIDY "${c_clang_tidy_cmd}")
+    endif()
+    if(cxx_source_files)
+      set_target_properties("${target}" PROPERTIES
+        CXX_CLANG_TIDY "${cxx_clang_tidy_cmd}")
     endif()
 
   endif()
