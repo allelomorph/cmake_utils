@@ -117,7 +117,7 @@ via init_ctest() parameters")
     #   label, but labels are not properly imported from Catch2 tags, see:
     #   - https://github.com/catchorg/Catch2/issues/1590
     list(APPEND ctest_command
-      "--tests-regex" "\"${_TEST_NAME_REGEX}\""
+      "--tests-regex" "\"${AC2T_TEST_NAME_REGEX}\""
     )
   endif()
 
