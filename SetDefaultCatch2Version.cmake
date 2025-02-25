@@ -66,7 +66,7 @@ else()
   message(WARNING "`${PACKAGE_MANAGER_BINARY}` is unsupported package manager")
 endif()
 
-if(${_CATCH2_DEFAULT_VERSION})
+if(_CATCH2_DEFAULT_VERSION)
   upstream_ver_from_package_ver(
     "${_CATCH2_DEFAULT_VERSION}" _CATCH2_DEFAULT_VERSION)
   # upstream version according to package manager may still have suffixes,
