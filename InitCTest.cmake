@@ -228,13 +228,15 @@ function(_init_ctest_impl)
         list(APPEND warning_modvars ${modvar})
       endif()
     endforeach()
-    list(JOIN warning_modvars " " warning_modvars)
-    # indent cmake warnings and errors to skip autoformatting, see:
-    #   - https://stackoverflow.com/a/51035045
-    message(WARNING
-      " init_ctest(): the following CTest module variables:\n"
-      "     ${warning_modvars}\n"
-      " may be ignored by module unless init_ctest(OVERRIDE_CACHED) is ON\n")
+    if(warning_modvars)
+      list(JOIN warning_modvars " " warning_modvars)
+      # indent cmake warnings and errors to skip autoformatting, see:
+      #   - https://stackoverflow.com/a/51035045
+      message(WARNING
+        " init_ctest(): the following CTest module variables:\n"
+        "     ${warning_modvars}\n"
+        " may be ignored by module unless init_ctest(OVERRIDE_CACHED) is ON\n")
+    endif()
   endif()
 
   ##
