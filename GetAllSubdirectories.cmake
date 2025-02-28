@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 include_guard(DIRECTORY)
 
-if(COMAMND get_all_subdirectories)
+if(COMMAND get_all_subdirectories)
   return()
 endif()
 
