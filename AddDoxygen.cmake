@@ -60,6 +60,12 @@ documentation without doxygen package installed")
     return()
   endif()
 
+  # see: https://www.doxygen.nl/manual/markdown.html
+  if(DOXYGEN_VERSION VERSION_LESS "1.8.0")
+    message(WARNING "add_doxygen(${input_dir} ${ARGN}): found Doxygen \
+v${DOXYGEN_VERSION}, 1.8.0+ required for markdown support")
+  endif()
+
   ##
   ## parse and validate required parameter
   ##
