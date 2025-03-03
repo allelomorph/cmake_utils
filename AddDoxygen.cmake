@@ -115,14 +115,21 @@ or \"${input_path}\", is not a directory currently visible to the project")
     "${options}" "${single_value_args}" "${multi_value_args}" ${ARGN}
   )
 
+  get_directory_property(binary_path ${input_path}
+    BINARY_DIR
+  )
   if(DEFINED ARGS_OUTPUT_DIR)
     cmake_path(SET output_path NORMALIZE ${ARGS_OUTPUT_DIR})
+    # OUTPUT_DIR can only be outside build if an absolute path to dir
     if(NOT IS_ABSOLUTE ${output_path})
-      cmake_path(APPEND CMAKE_CURRENT_BINARY_DIR ${output_path}
+      cmake_path(APPEND binary_path ${output_path}
         OUTPUT_VARIABLE output_path)
+    elseif(NOT IS_DIRECTORY ${output_path})
+      message(FATAL_ERROR "add_doxygen(${input_dir} ${ARGN}): \
+${output_path} is a file, not a directory")
     endif()
   else()
-    cmake_path(APPEND CMAKE_CURRENT_BINARY_DIR "docs"
+    cmake_path(APPEND binary_path "docs"
       OUTPUT_VARIABLE output_path)
   endif()
 
