@@ -46,11 +46,13 @@ generate documentation for source in this directory "
 #
 #   input_dir   (string): source dir for which to generate documentation
 #   UNSTYLED    (bool, optional): toggles use of plain Doxygen HTML/CSS
-#   OUTPUT_DIR  (string, optional): destination directory for Doxygen output,
-#                 will auto-generate a target name if none is provided
-#   DOCS_TARGET (string, optional): name of target to build to run the
-#                 documentation generation, will also be auto-generated if
-#                 not provided
+#   OUTPUT_DIR  (string, optional): destination directory for Doxygen output:
+#                 none: default to input_dir's BINARY_DIR/docs
+#                 relative path: input_dir's BINARY_DIR/OUTPUT_DIR
+#                 absolute path: OUTPUT_DIR
+#   DOCS_TARGET (string, optional): target to build for documentation
+#                 generation, if not provided a unique target name will
+#                 be made using input_dir
 #
 function(add_doxygen input_dir)
 
