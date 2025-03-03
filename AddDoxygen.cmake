@@ -223,7 +223,7 @@ documentation without doxygen-awesome-css")
     DOCS_TARGET ${target_name}
   )
 
-  message(STATUS "Added Doxygen documentation target ${target_name} for \
-directory ${input_path}")
+  message(STATUS "Added Doxygen target ${target_name} to build docs for \
+${input_path} in ${output_path}")
 
 endfunction()
