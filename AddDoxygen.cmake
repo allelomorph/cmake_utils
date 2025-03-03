@@ -91,7 +91,8 @@ v${DOXYGEN_VERSION}, 1.8.0+ required for markdown support")
 or \"${input_path}\", is not a directory currently visible to the project")
   endif()
 
-  get_directory_property(docs_target ${input_path}
+  get_directory_property(docs_target
+    DIRECTORY ${input_path}
     DOCS_TARGET
   )
   if(docs_target)
@@ -115,7 +116,8 @@ or \"${input_path}\", is not a directory currently visible to the project")
     "${options}" "${single_value_args}" "${multi_value_args}" ${ARGN}
   )
 
-  get_directory_property(binary_path ${input_path}
+  get_directory_property(binary_path
+    DIRECTORY ${input_path}
     BINARY_DIR
   )
   if(DEFINED ARGS_OUTPUT_DIR)
