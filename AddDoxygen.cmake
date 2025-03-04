@@ -41,8 +41,14 @@ generate documentation for source in this directory "
 
 # add_doxygen(input_dir)
 #   Sets up Doxygen automated documentation generation for a given source
-#     directory, see:
-#     - https://github.com/catchorg/Catch2/blob/v3.4.0/docs/cmake-integration.md
+#     directory.
+#
+#   Deliberately skips popular Breathe -> Sphinx ReadTheDocs toolchain to
+#     avoid all the additional dependencies:
+#     - system: python3, python3-pip
+#     - pip: breathe, GitPython, Sphinx, sphinxcontrib-moderncmakedomain,
+#         sphinx-sitemap, sphinx-rtd-theme
+#   As a consequence, CMake scripts are not documented, only source files.
 #
 #   input_dir   (string): source dir for which to generate documentation
 #   UNSTYLED    (bool, optional): toggles use of plain Doxygen HTML/CSS
