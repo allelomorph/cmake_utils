@@ -222,7 +222,7 @@ documentation without doxygen-awesome-css")
 
   doxygen_add_docs(${target_name}
     ${input_path}
-    COMMENT "Generate HTML documentation"
+    COMMENT "Generate Doxygen HTML documentation"
   )
 
   add_dependencies(${all_docs_target_name}
