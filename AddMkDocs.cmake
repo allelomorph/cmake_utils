@@ -216,9 +216,13 @@ find ${path}")
   endif()
   if(EXISTS ${PROJECT_SOURCE_DIR}/doxide.yaml.in)
     list(APPEND setup_dependencies ${PROJECT_SOURCE_DIR}/doxide.yaml.in)
+  elseif(EXISTS ${PROJECT_SOURCE_DIR}/doxide.yaml)
+    list(APPEND setup_dependencies ${PROJECT_SOURCE_DIR}/doxide.yaml)
   endif()
   if(EXISTS ${PROJECT_SOURCE_DIR}/mkdocs.yaml.in)
     list(APPEND setup_dependencies ${PROJECT_SOURCE_DIR}/mkdocs.yaml.in)
+  elseif(EXISTS ${PROJECT_SOURCE_DIR}/mkdocs.yaml)
+    list(APPEND setup_dependencies ${PROJECT_SOURCE_DIR}/mkdocs.yaml)
   endif()
 
   add_custom_command(
