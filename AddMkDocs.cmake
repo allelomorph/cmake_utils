@@ -134,8 +134,8 @@ elseif(EXISTS @PROJECT_SOURCE_DIR@/doxide.yaml)
     @PROJECT_BINARY_DIR@/doxide.yaml
   )
 else()
-  message(WARNING "No doxide.yaml.in or doxide.yaml found in \
-${PROJECT_SOURCE_DIR}, defaulting to `doxide init` version")
+  message(FATAL_ERROR "No doxide.yaml.in or doxide.yaml found in \
+${PROJECT_SOURCE_DIR}, required for use of doxide")
 endif()
 
 if(EXISTS @PROJECT_SOURCE_DIR@/mkdocs.yaml.in)
@@ -174,8 +174,8 @@ elseif(EXISTS @PROJECT_SOURCE_DIR@/mkdocs.yaml)
     @PROJECT_BINARY_DIR@/mkdocs.yaml
   )
 else()
-  message(WARNING "No mkdocs.yaml.in or mkdocs.yaml found in \
-${PROJECT_SOURCE_DIR}, defaulting to `doxide init` version")
+  message(FATAL_ERROR "No mkdocs.yaml.in or mkdocs.yaml found in \
+${PROJECT_SOURCE_DIR}, required for use of mkdocs")
 endif()
 ]])
   if(NOT IS_DIRECTORY ${PROJECT_SOURCE_DIR}/cmake)
