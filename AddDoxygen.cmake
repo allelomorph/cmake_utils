@@ -7,10 +7,6 @@ if(COMMAND add_doxygen)
   return()
 endif()
 
-if(NOT COMMAND get_all_subdirectories)
-  include(GetAllSubdirectories)
-endif()
-
 if(NOT COMMAND FetchContent_Declare OR
     NOT COMMAND FetchContent_MakeAvailable)
   include(FetchContent)
@@ -32,16 +28,20 @@ if(NOT doxygen-awesome-css_POPULATED)
   FetchContent_MakeAvailable(doxygen-awesome-css)
 endif()
 
-# define_property calls should be idempotent
-define_property(DIRECTORY PROPERTY
-  DOCS_TARGET
-  BRIEF_DOCS "string containing name of target to build to automatically \
-generate documentation for source in this directory "
-)
+if(NOT DOXYGEN_FOUND)
+  message(FATAL_ERROR
+    "Doxygen not found; required to build HTML documentation")
+endif()
 
-# add_doxygen(input_dir)
-#   Sets up Doxygen automated documentation generation for a given source
-#     directory.
+# see: https://www.doxygen.nl/manual/markdown.html
+if(DOXYGEN_VERSION VERSION_LESS "1.8.0")
+  message(WARNING
+    "found Doxygen v${DOXYGEN_VERSION}, 1.8.0+ required for markdown support")
+endif()
+
+# add_doxygen()
+#   Sets up Doxygen automated documentation generation for the project,
+#     accesible via the `doxygen` target.
 #
 #   Deliberately skips popular Breathe -> Sphinx ReadTheDocs toolchain to
 #     avoid all the additional dependencies:
@@ -50,73 +50,29 @@ generate documentation for source in this directory "
 #         sphinx-sitemap, sphinx-rtd-theme
 #   As a consequence, CMake scripts are not documented, only source files.
 #
+#   This function is somewhat redundant with doxygen_add_docs():
+#     - https://cmake.org/cmake/help/v3.31/module/FindDoxygen.html#command:doxygen_add_docs
+#     But is an intentional simplification to allow choosing source files via
+#     the Doxyfile INPUT variable. Ideally this script should be bundled with a
+#     companion Doxyfile.in template.
+#
 #   input_dir   (string): source dir for which to generate documentation
 #   UNSTYLED    (bool, optional): toggles use of plain Doxygen HTML/CSS
-#   OUTPUT_DIR  (string, optional): destination directory for Doxygen output:
-#                 none: default to input_dir's BINARY_DIR/docs
-#                 relative path: input_dir's BINARY_DIR/OUTPUT_DIR
-#                 absolute path: OUTPUT_DIR
-#   DOCS_TARGET (string, optional): target to build for documentation
-#                 generation, if not provided a unique target name will
-#                 be made using input_dir
 #
-function(add_doxygen input_dir)
+function(add_doxygen)
 
-  if (NOT DOXYGEN_FOUND)
-    message(WARNING "add_doxygen(${input_dir} ${ARGN}): cannot generate \
-documentation without doxygen package installed")
-    return()
-  endif()
-
-  # see: https://www.doxygen.nl/manual/markdown.html
-  if(DOXYGEN_VERSION VERSION_LESS "1.8.0")
-    message(WARNING "add_doxygen(${input_dir} ${ARGN}): found Doxygen \
-v${DOXYGEN_VERSION}, 1.8.0+ required for markdown support")
-  endif()
-
-  ##
-  ## parse and validate required parameter
-  ##
-
-  # make input directory path absolute
-  cmake_path(SET input_path NORMALIZE ${input_dir})
-  if(NOT IS_ABSOLUTE ${input_path})
-    cmake_path(APPEND CMAKE_CURRENT_SOURCE_DIR ${input_path}
-      OUTPUT_VARIABLE input_path)
-  endif()
-
-  # ensure that input directory path has been added with add_subdirectory()
-  get_all_subdirectories(${PROJECT_SOURCE_DIR} project_subdir_paths)
-  set(input_path_found FALSE)
-  foreach(path ${project_subdir_paths})
-    if(input_path MATCHES "^${path}$")
-      set(input_path_found TRUE)
-      break()
-    endif()
-  endforeach()
-  if(NOT input_path_found)
-    message(FATAL_ERROR "add_doxygen(${input_dir} ${ARGN}): \"${input_dir}\", \
-or \"${input_path}\", is not a directory currently visible to the project")
-  endif()
-
-  get_directory_property(docs_target
-    DIRECTORY ${input_path}
-    DOCS_TARGET
-  )
-  if(docs_target)
+  if(TARGET doxygen)
     return()
   endif()
 
   ##
-  ## parse and validate optional parameters
+  ## parse and validate parameters
   ##
 
   set(options
     UNSTYLED
   )
   set(single_value_args
-    OUTPUT_DIR
-    DOCS_TARGET
   )
   set(multi_value_args
   )
@@ -124,71 +80,32 @@ or \"${input_path}\", is not a directory currently visible to the project")
     "${options}" "${single_value_args}" "${multi_value_args}" ${ARGN}
   )
 
-  get_directory_property(binary_path
-    DIRECTORY ${input_path}
-    BINARY_DIR
+  ##
+  ## configure Doxyfile to set Doxygen settings
+  ##
+
+  # doxygen_add_docs defaults, see:
+  #   - https://github.com/Kitware/CMake/blob/v3.31.0/Modules/FindDoxygen.cmake#L899
+  set(DOXYGEN_RECURSIVE YES)
+  set(DOXYGEN_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
+  set(DOXYGEN_DOT_MULTI_TARGETS YES)
+  set(DOXYGEN_GENERATE_LATEX NO)
+  list(APPEND DOXYGEN_EXCLUDE_PATTERNS
+    "*/.git/*"
+    "*/.svn/*"
+    "*/.hg/*"
+    "*/CMakeFiles/*"
+    "*/_CPack_Packages/*"
+    "DartConfiguration.tcl"
+    "CTestConfiguration.ini"
+    "CMakeLists.txt"
+    "CMakeCache.txt"
   )
-  if(DEFINED ARGS_OUTPUT_DIR)
-    cmake_path(SET output_path NORMALIZE ${ARGS_OUTPUT_DIR})
-    # OUTPUT_DIR can only be outside build if an absolute path to dir
-    if(NOT IS_ABSOLUTE ${output_path})
-      cmake_path(APPEND binary_path ${output_path}
-        OUTPUT_VARIABLE output_path)
-    elseif(NOT IS_DIRECTORY ${output_path})
-      message(FATAL_ERROR "add_doxygen(${input_dir} ${ARGN}): \
-${output_path} is a file, not a directory")
-    endif()
-  else()
-    cmake_path(APPEND binary_path "docs"
-      OUTPUT_VARIABLE output_path)
-  endif()
+  list(JOIN DOXYGEN_EXCLUDE_PATTERNS " " DOXYGEN_EXCLUDE_PATTERNS)
 
-  if(DEFINED ARGS_DOCS_TARGET)
-    if(TARGET ${ARGS_DOCS_TARGET})
-      message(FATAL_ERROR "add_doxygen(${input_dir} ${ARGN}): \
-${ARGS_DOCS_TARGET} matches an already existing target, please choose another \
-name or run without DOCS_TARGET for automatic target naming")
-    else()
-      set(target_name ${ARGS_DOCS_TARGET})
-    endif()
-  else()
-    # find shortest unused target name, starting with <dirname>_doc,
-    #   then incrementally prepending <parent-dirname>_
-    cmake_path(GET input_path FILENAME dirname)
-    cmake_path(GET input_path PARENT_PATH parent_path)
-    set(target_prefix ${dirname})
-    while(TARGET ${target_prefix}_docs)
-      list(APPEND attempted_targets ${target_prefix}_docs)
-      cmake_path(GET parent_path FILENAME dirname)
-      if(${dirname} STREQUAL ${PROJECT_NAME})
-        break()
-      endif()
-      cmake_path(GET parent_path PARENT_PATH parent_path)
-      set(target_prefix ${dirname}_${target_prefix})
-    endwhile()
-    if(TARGET ${target_prefix}_docs)
-      message(FATAL_ERROR "add_doxygen(${input_dir} ${ARGN}): all auto-generated \
-candidate target names are already taken: ${attempted_targets}")
-    else()
-      set(target_name ${target_prefix}_docs)
-    endif()
-  endif()
-
-  ##
-  ## set variables to be cosumed by doxygen_add_docs when configuring Doxygen
-  ##
-
-  # DOXYGEN_* config cmake variables come in two varieties:
-  #   those consumed directly by doxygen_add_docs:
-  #     - https://github.com/Kitware/CMake/blob/v3.31.0/Modules/FindDoxygen.cmake#L128
-  #   or those that map to Doxygen config options (without the DOXYGEN_ prefix):
-  #     - https://www.doxygen.nl/manual/config.html
-  #   which doxygen_add_docs uses to configure a Doxyfile when no CONFIG_FILE
-  #   param is passed:
-  #     - https://github.com/Kitware/CMake/blob/v3.31.0/Modules/FindDoxygen.cmake#L726
-
+  # elective options
   set(DOXYGEN_GENERATE_HTML YES)
-  set(DOXYGEN_HTML_OUTPUT   ${output_path})
+  set(DOXYGEN_HTML_OUTPUT   doxygen_site)
 
   if(NOT ${ARGS_UNSTYLED})
     if(doxygen-awesome-css_POPULATED)
@@ -202,38 +119,37 @@ candidate target names are already taken: ${attempted_targets}")
         set(DOXYGEN_DOT_IMAGE_FORMAT    svg)
         #set(DOXYGEN_DOT_TRANSPARENT    YES) # not doxygen config var as of v1.9.8
       else()
-        message(WARNING "add_doxygen(${input_dir} ${ARGN}): cannot generate
-documentation graphs without graphviz dot installed")
+        message(WARNING "add_doxygen(${ARGN}): cannot generate documentation \
+graphs without Graphviz dot installed")
       endif()
     else()
-      message(WARNING "add_doxygen(${input_dir} ${ARGN}): cannot style
-documentation without doxygen-awesome-css")
+      message(WARNING "add_doxygen(${ARGN}): cannot style documentation without \
+doxygen-awesome-css")
     endif()
   endif()
 
-  ##
-  ## config Doxygen and set documentation targets
-  ##
-
-  set(all_docs_target_name ${PROJECT_NAME}_docs)
-  if(NOT TARGET ${all_docs_target_name})
-    add_custom_target(${all_docs_target_name})
+  if(NOT EXISTS ${PROJECT_SOURCE_DIR}/Doxyfile.in)
+    message(FATAL_ERROR
+      "add_doxygen(${ARGN}): missing required ${PROJECT_SOURCE_DIR}/Doxyfile.in")
   endif()
-
-  doxygen_add_docs(${target_name}
-    ${input_path}
-    COMMENT "Generate Doxygen HTML documentation"
+  configure_file(
+    ${PROJECT_SOURCE_DIR}/Doxyfile.in
+    ${PROJECT_BINARY_DIR}/Doxyfile
+    ESCAPE_QUOTES
   )
 
-  add_dependencies(${all_docs_target_name}
-    ${target_name}
+  ##
+  ## Add documentation build target
+  ##
+
+  add_custom_target(doxygen
+    doxygen Doxyfile
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+    COMMENT
+      "Building Doxygen HTML documentation"
+    USES_TERMINAL
   )
 
-  set_property(DIRECTORY ${input_path} PROPERTY
-    DOCS_TARGET ${target_name}
-  )
-
-  message(STATUS "Added Doxygen target ${target_name} to build docs for \
-${input_path} in ${output_path}")
+  message(STATUS "Added Doxygen target doxygen to build HTML docs")
 
 endfunction()
