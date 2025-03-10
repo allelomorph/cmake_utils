@@ -1,0 +1,17 @@
+# https://doxide.org/configuring/
+# notes re: Doxide v.0.9.0
+
+# empty fields will overwrite default values
+# quotes not needed for file names unless they contain quotes, spaces, or wildcards
+# doxide has automatic redundancy protection for explicit duplicates and for
+#   glob (+recursion) duplicates, but will issue warnings
+# avoid recursive globbing (**) as it seems inconsistent
+# AddMkDocs relies on using default output: docs
+
+title: "@PROJECT_NAME@"
+description: "@PROJECT_DESCRIPTION@"
+#files:
+#  - "@PROJECT_SOURCE_DIR@/"
+#coverage: coverage.gcov
+#defines:
+#groups:
