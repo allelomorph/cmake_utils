@@ -128,15 +128,21 @@ doxygen-awesome-css")
     endif()
   endif()
 
-  if(NOT EXISTS ${PROJECT_SOURCE_DIR}/Doxyfile.in)
-    message(FATAL_ERROR
-      "add_doxygen(${ARGN}): missing required ${PROJECT_SOURCE_DIR}/Doxyfile.in")
+  if(EXISTS ${PROJECT_SOURCE_DIR}/Doxyfile.in)
+    configure_file(
+      ${PROJECT_SOURCE_DIR}/Doxyfile.in
+      ${PROJECT_BINARY_DIR}/Doxyfile
+      ESCAPE_QUOTES
+    )
+  elseif(EXISTS ${PROJECT_SOURCE_DIR}/Doxyfile)
+    file(COPY_FILE
+      ${PROJECT_SOURCE_DIR}/Doxyfile
+      ${PROJECT_BINARY_DIR}/Doxyfile
+    )
+  else()
+    message(FATAL_ERROR "add_doxygen(${ARGN}): no Doxyfile.in or Doxyfile \
+found in ${PROJECT_SOURCE_DIR}, required for use of doxygen")
   endif()
-  configure_file(
-    ${PROJECT_SOURCE_DIR}/Doxyfile.in
-    ${PROJECT_BINARY_DIR}/Doxyfile
-    ESCAPE_QUOTES
-  )
 
   ##
   ## Add documentation build target
