@@ -97,7 +97,6 @@ set(clone_options
 set(patch_paths
   ${patch_path}/downstream_FetchContent.patch
   ${patch_path}/ignore_file_and_brief_cmds.patch
-  ${patch_path}/init_observes_output_longopt.patch
 )
 list(JOIN patch_paths " " patch_paths)
 
