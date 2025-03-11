@@ -87,7 +87,6 @@ endif()
 #   --shallow-submodules:
 #   - https://gitlab.kitware.com/cmake/cmake/-/issues/16144
 #   So we must use a custom DOWNLOAD_COMMAND
-set(FETCHCONTENT_QUIET OFF)
 set(CMAKE_SKIP_INSTALL_RULES ON)
 set(bash_prefix     "/usr/bin/bash" "-c" )
 set(git_repository  https://github.com/lawmurray/doxide.git )
@@ -116,7 +115,6 @@ FetchContent_Declare(doxide
 FetchContent_MakeAvailable(doxide)
 
 unset(patch_path)
-set(FETCHCONTENT_QUIET ON)
 set(CMAKE_SKIP_INSTALL_RULES OFF)
 unset(bash_prefix)
 unset(git_repository)
