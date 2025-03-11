@@ -63,6 +63,7 @@ set(FP_OPTIONS
 set(FC_OPTIONS
     GIT_REPOSITORY https://github.com/catchorg/Catch2.git
     GIT_TAG        "v${CATCH_TARGET_VERSION}"
+    GIT_SHALLOW
 )
 fetch_if_not_found(Catch2 "${FP_OPTIONS}" "${FC_OPTIONS}")
 

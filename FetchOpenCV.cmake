@@ -235,6 +235,7 @@ OPENCV_EXTRA_MODULES_PATH of\n"
   FetchContent_Declare(OpenCV
     GIT_REPOSITORY "https://github.com/opencv/opencv.git"
     GIT_TAG        "${git_tag}"
+    GIT_SHALLOW
   )
   FetchContent_MakeAvailable(OpenCV)
 

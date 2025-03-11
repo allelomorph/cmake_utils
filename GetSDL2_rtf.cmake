@@ -41,6 +41,7 @@ set(FP_OPTIONS
 set(FC_OPTIONS
   GIT_REPOSITORY "https://github.com/libsdl-org/SDL_rtf.git"
   GIT_TAG        "${SDL_RTF_CURRENT_VERSION_COMMIT_HASH}"
+  GIT_SHALLOW
 )
 # SDL_rtf 2.0.0 does not use SDL2RTF_VENDORED
 # set(SDL2RTF_VENDORED ON)

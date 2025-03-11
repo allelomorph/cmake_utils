@@ -38,6 +38,7 @@ set(FP_OPTIONS
 set(FC_OPTIONS
   GIT_REPOSITORY "https://github.com/libsdl-org/SDL_ttf.git"
   GIT_TAG        "release-${SDL_TTF_TARGET_VERSION}"
+  GIT_SHALLOW
 )
 # override SDL_ttf 2.20.0+ option SDL2TTF_VENDORED to force building of
 #   dependencies from source, see:

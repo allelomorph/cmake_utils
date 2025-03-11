@@ -38,6 +38,7 @@ set(FP_OPTIONS
 set(FC_OPTIONS
   GIT_REPOSITORY "https://github.com/libsdl-org/SDL_image.git"
   GIT_TAG        "release-${SDL_IMAGE_TARGET_VERSION}"
+  GIT_SHALLOW
 )
 # override SDL_image 2.6.0+ option SDL2IMAGE_VENDORED to force building of
 #   dependencies from source, see:

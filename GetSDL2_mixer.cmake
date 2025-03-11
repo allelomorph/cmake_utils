@@ -38,6 +38,7 @@ set(FP_OPTIONS
 set(FC_OPTIONS
   GIT_REPOSITORY "https://github.com/libsdl-org/SDL_mixer.git"
   GIT_TAG        "release-${SDL_MIXER_TARGET_VERSION}"
+  GIT_SHALLOW
 )
 # override SDL_mixer 2.6.0+ option SDL2MIXER_VENDORED to force building of
 #   dependencies from source, see:

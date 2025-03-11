@@ -38,6 +38,7 @@ set(FP_OPTIONS
 set(FC_OPTIONS
   GIT_REPOSITORY "https://github.com/libsdl-org/SDL_net.git"
   GIT_TAG        "release-${SDL_NET_TARGET_VERSION}"
+  GIT_SHALLOW
 )
 # SDL_net 2.2.0 does not use SDL2NET_VENDORED
 # set(SDL2NET_VENDORED ON)
