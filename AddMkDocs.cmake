@@ -239,9 +239,8 @@ find ${path}")
     # TBD when copying in docs/, for some reason it is considered always out of date
     DEPENDS ${setup_dependencies}
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-    COMMENT "Setting up doxide and mkdocs builds"
     USES_TERMINAL
-    DEPENDS_EXPLICIT_ONLY
+    COMMENT "Setting up doxide and mkdocs builds"
   )
 
   add_custom_target(doxide_md
@@ -255,9 +254,8 @@ find ${path}")
       ${PROJECT_BINARY_DIR}/doxide.yaml
       ${PROJECT_BINARY_DIR}/mkdocs.yaml
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-    COMMENT
-      "Building Doxide markdown documentation"
     USES_TERMINAL
+    COMMENT "Building Doxide markdown documentation"
   )
 
   message(STATUS "Added Doxide target doxide_md to build Markdown docs")
