@@ -108,7 +108,7 @@ set(BUILD_TESTING OFF CACHE BOOL "skip building Doxide libyaml dependency tests"
 #   and contains no enescaped semicolons
 FetchContent_Declare(doxide
   DOWNLOAD_COMMAND ${bash_prefix}
-    "git -C ${fc_src_dir} pull &> /dev/null || \
+    "[[ -d ${fc_src_dir}/.git ]] || \
       git clone ${clone_options} ${git_repository} ${fc_src_dir}"
   PATCH_COMMAND ${bash_prefix}
     "git diff --quiet && git apply ${patch_paths} || true"
