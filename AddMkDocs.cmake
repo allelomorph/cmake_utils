@@ -94,7 +94,7 @@ cmake_minimum_required(VERSION 3.17)
 execute_process(
   # `doxide init` will hang waiting for user confirmation for deletion of
   #    previous files, even when piping in `yes`
-  COMMAND ${CMAKE_COMMAND} -E rm -rf docs/ doxide.yaml mkdocs.yaml
+  COMMAND @CMAKE_COMMAND@ -E rm -rf docs/ doxide.yaml mkdocs.yaml
   COMMAND @doxide_BINARY_DIR@/doxide init
   WORKING_DIRECTORY @PROJECT_BINARY_DIR@
   OUTPUT_QUIET
@@ -135,7 +135,7 @@ elseif(EXISTS @PROJECT_SOURCE_DIR@/doxide.yaml)
   )
 else()
   message(FATAL_ERROR "No doxide.yaml.in or doxide.yaml found in \
-${PROJECT_SOURCE_DIR}, required for use of doxide")
+@PROJECT_SOURCE_DIR@, required for use of doxide")
 endif()
 
 if(EXISTS @PROJECT_SOURCE_DIR@/mkdocs.yaml.in)
@@ -175,7 +175,7 @@ elseif(EXISTS @PROJECT_SOURCE_DIR@/mkdocs.yaml)
   )
 else()
   message(FATAL_ERROR "No mkdocs.yaml.in or mkdocs.yaml found in \
-${PROJECT_SOURCE_DIR}, required for use of mkdocs")
+@PROJECT_SOURCE_DIR@, required for use of mkdocs")
 endif()
 ]])
   if(NOT IS_DIRECTORY ${PROJECT_SOURCE_DIR}/cmake)
@@ -187,6 +187,7 @@ endif()
     configure_file(
       ${setup_script_path}.in
       ${setup_script_path}
+      @ONLY
     )
   file(REMOVE ${setup_script_path}.in)
 
