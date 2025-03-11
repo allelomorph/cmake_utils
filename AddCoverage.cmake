@@ -149,7 +149,7 @@ generation when compiling with clang requires llvm-cov")
       " --gcov-tool ${LLVM-COV_BINARY} --gcov-tool gcov")
   endif()
 
-  if(NOT TARGET ${PROJECT_NAME}_overage)
+  if(NOT TARGET ${PROJECT_NAME}_coverage)
     add_custom_target(${PROJECT_NAME}_coverage)
   endif()
 
