@@ -164,6 +164,7 @@ if(EXISTS @PROJECT_SOURCE_DIR@/mkdocs.yaml.in)
     COMMAND git config --get remote.origin.url
     WORKING_DIRECTORY @PROJECT_SOURCE_DIR@
     OUTPUT_VARIABLE git_remote_origin_url
+    OUTPUT_STRIP_TRAILING_WHITESPACE
     ERROR_QUIET
   )
   if(git_remote_origin_url)
@@ -178,6 +179,8 @@ if(EXISTS @PROJECT_SOURCE_DIR@/mkdocs.yaml.in)
       MKDOCS_REPO_ICON ${MKDOCS_REPO_URL})
     set(MKDOCS_REPO_ICON "fontawesome/brands/${MKDOCS_REPO_ICON}")
   endif()
+  # TBD may only need this option when debugging file tree in browser, remove if
+  #   actually serving content online
   set(MKDOCS_USE_DIRECTORY_URLS "false")
   configure_file(
     @PROJECT_SOURCE_DIR@/mkdocs.yaml.in
