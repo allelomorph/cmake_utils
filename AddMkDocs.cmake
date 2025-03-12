@@ -111,6 +111,11 @@ execute_process(
   # `doxide init` will hang waiting for user confirmation for deletion of
   #    previous files, even when piping in `yes`
   COMMAND @CMAKE_COMMAND@ -E rm -rf docs/ doxide.yaml mkdocs.yaml
+  WORKING_DIRECTORY @PROJECT_BINARY_DIR@
+  OUTPUT_QUIET
+  COMMAND_ERROR_IS_FATAL ANY
+)
+execute_process(
   COMMAND ${doxide_path} init
   WORKING_DIRECTORY @PROJECT_BINARY_DIR@
   OUTPUT_QUIET
