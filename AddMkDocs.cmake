@@ -82,20 +82,36 @@ function(add_mkdocs)
 
   # doxide v0.9.0 expects file paths in doxide.yaml to be relative to the
   #   directory in which it is run, so in order to run it in the build
-  #   directory we need to make the file paths absolute. Additionally, we
-  #   cannot know And to make them
-  #   absolute, we need PROJECT_SOURCE_DIR, which is not known until config
-  #   time.
-  set(setup_script_text [[
+  #   directory we need to make the file paths absolute.
+  # If we want the doxdie/mkdocs config to update based on changes to the
+  #   yaml.in files, we need to config them in an add_custom_command, and
+  #   since that limits us to cli calls, we need a script to do the
+  #   preparation:
+  set(setup_script_text [==[
 # newest features used: cmake -E rm v3.17
 cmake_minimum_required(VERSION 3.17)
+
+# FetchContent may put the doxide binary in its default designated build dir
+#   ${FETCHCONTENT_BASE_DIR}/doxide-build, or choose to follow the install
+#   path set by doxide, see:
+#   - https://github.com/lawmurray/doxide/blob/v0.9.0/CMakeLists.txt#L65
+#   - https://cmake.org/cmake/help/latest/module/GNUInstallDirs.html
+# TBD CMAKE_SKIP_INSTALL_RULES seems to have no effect on this behavior
+if(EXISTS @doxide_BINARY_DIR@/doxide)
+  set(doxide_path @doxide_BINARY_DIR@/doxide)
+elseif(EXISTS @PROJECT_BINARY_DIR@/@CMAKE_INSTALL_BINDIR@/doxide)
+  set(doxide_path @PROJECT_BINARY_DIR@/@CMAKE_INSTALL_BINDIR@/doxide)
+else()
+  message(FATAL_ERROR "Could not locate doxide executable, expected either \
+@doxide_BINARY_DIR@/doxide or @PROJECT_BINARY_DIR@/@CMAKE_INSTALL_BINDIR@/doxide")
+endif()
 
 # first init doxide to create any files not supplied by PROJECT_SOURCE_DIR
 execute_process(
   # `doxide init` will hang waiting for user confirmation for deletion of
   #    previous files, even when piping in `yes`
   COMMAND @CMAKE_COMMAND@ -E rm -rf docs/ doxide.yaml mkdocs.yaml
-  COMMAND @doxide_BINARY_DIR@/doxide init
+  COMMAND ${doxide_path} init
   WORKING_DIRECTORY @PROJECT_BINARY_DIR@
   OUTPUT_QUIET
   COMMAND_ERROR_IS_FATAL ANY
@@ -177,7 +193,7 @@ else()
   message(FATAL_ERROR "No mkdocs.yaml.in or mkdocs.yaml found in \
 @PROJECT_SOURCE_DIR@, required for use of mkdocs")
 endif()
-]])
+]==])
   if(NOT IS_DIRECTORY ${PROJECT_SOURCE_DIR}/cmake)
     file(MAKE_DIRECTORY ${PROJECT_SOURCE_DIR}/cmake)
   endif()
@@ -236,7 +252,8 @@ find ${path}")
       ${PROJECT_BINARY_DIR}/mkdocs.yaml
     COMMAND
       ${CMAKE_COMMAND} -P ${setup_script_path}
-    # TBD when copying in docs/, for some reason it is considered always out of date
+    # TBD when copying in docs/ from PROJECT_SOURCE_DIR, for some reason it is
+    #   considered always out of date
     DEPENDS ${setup_dependencies}
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
     USES_TERMINAL
