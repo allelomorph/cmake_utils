@@ -10,6 +10,43 @@ if(NOT COMMAND fetch_if_not_found)
   include(FetchIfNotFound)
 endif()
 
+# In practice, when configuring SDL_mixer with FetchContent, it will set
+#   BUILD_TESTING in the parent project's cache, rather than its own
+#   subbuild cache, which can impact the parent project's calls to
+#   `include(CTest)` later in the current config or on subsequent configs.
+# To prevent this, we record the current project's state of the BUILD_TESTING
+#   variable, and restore it at the end of the fetching process.
+# The problem has been isolated to SDL_mixer's submodule dependency WavPack
+#   and its call to `cmake_dependent_option(BUILD_TESTING`. An alternative
+#   solution would be to simply set SDL2MIXER_WAVPACK to OFF before the
+#   SDL_mixer config.
+# - https://github.com/libsdl-org/SDL_mixer/tree/release-2.8.1/external
+# - https://github.com/libsdl-org/WavPack/blob/02efabe73e1ac743ec35885f2b620cec3e996ca5/CMakeLists.txt#L145
+# - https://cmake.org/cmake/help/latest/module/CMakeDependentOption.html
+#
+# TBD SDL_image (v2.8.0 for example) has calls to set(BUILD_TESTING CACHE FORCE)
+#   in its submodule libjxl, but somehow does not cause the same problem. Does
+#   the problem then lie with option(), as cmake_dependent_option calls both
+#   option() and set(CACHE FORCE), or is it a more subtle interaction with
+#   FetchContent?
+#   - https://github.com/libsdl-org/SDL_image/blob/release-2.8.0/CMakeLists.txt#L488
+#   - https://github.com/libsdl-org/SDL_image/tree/release-2.8.0/external
+#   - https://github.com/libsdl-org/libjxl/blob/19cfa74afdc33f10b9781dfaf419cb50d88e1335/third_party/CMakeLists.txt#L59
+#   - https://github.com/libsdl-org/libjxl/blob/19cfa74afdc33f10b9781dfaf419cb50d88e1335/third_party/CMakeLists.txt#L72
+if(DEFINED BUILD_TESTING)
+  set(_BUILD_TESTING_defined ON)
+else()
+  set(_BUILD_TESTING_defined OFF)
+endif()
+if(DEFINED CACHE{BUILD_TESTING})
+  set(_BUILD_TESTING_cached ON)
+else()
+  set(_BUILD_TESTING_cached OFF)
+endif()
+if(_BUILD_TESTING_defined OR _BUILD_TESTING_cached)
+  set(_BUILD_TESTING_value ${BUILD_TESTING})
+endif()
+
 include(SetDefaultSDL2_mixerVersion)
 
 # first release supporting cmake (requires SDL 2.0.9):
@@ -76,3 +113,15 @@ unset(_git_tag)
 unset(_fc_src_dir)
 unset(_clone_options)
 unset(FC_OPTIONS)
+
+# Restore current project's BUILD_TESTING state (see above)
+unset(BUILD_TESTING CACHE)
+unset(BUILD_TESTING)
+if(_BUILD_TESTING_cached)
+  # Using default docstring from CTest.cmake option(BUILD_TESTING) call, see:
+  #   - https://github.com/Kitware/CMake/blob/v3.31.0/Modules/CTest.cmake#L50
+  set(BUILD_TESTING ${_BUILD_TESTING_value} CACHE BOOL
+    "Build the testing tree.")
+elseif(_BUILD_TESTING_defined)
+  set(BUILD_TESTING ${_BUILD_TESTING_value})
+endif()
