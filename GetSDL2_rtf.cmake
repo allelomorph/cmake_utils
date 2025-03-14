@@ -49,3 +49,9 @@ set(FC_OPTIONS
 #   - https://github.com/libsdl-org/SDL_rtf/blob/ef8e0b90ab1ff43ac87bda69e5ec297bb5014e8b/CMakeLists.txt#L52
 set(SDL2RTF_INSTALL OFF)
 fetch_if_not_found(SDL2_rtf "${FP_OPTIONS}" "${FC_OPTIONS}")
+
+unset(SDL_RTF_MINIMUM_VERSION)
+unset(SDL_RTF_CURRENT_VERSION)
+unset(SDL_RTF_TARGET_VERSION)
+unset(FP_OPTIONS)
+unset(FC_OPTIONS)

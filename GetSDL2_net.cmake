@@ -47,3 +47,9 @@ set(FC_OPTIONS
 #   - https://github.com/libsdl-org/SDL_net/blob/release-2.2.0/CMakeLists.txt#L51
 set(SDL2NET_INSTALL OFF)
 fetch_if_not_found(SDL2_net "${FP_OPTIONS}" "${FC_OPTIONS}")
+
+unset(SDL_NET_MINIMUM_VERSION)
+unset(SDL_NET_CURRENT_VERSION)
+unset(SDL_NET_TARGET_VERSION)
+unset(FP_OPTIONS)
+unset(FC_OPTIONS)
