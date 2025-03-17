@@ -3,27 +3,45 @@ cmake_minimum_required(VERSION 3.15)
 
 include_guard(DIRECTORY)
 
+define_property(GLOBAL PROPERTY
+  ${PROJECT_NAME}_CTEST_INITIALIZED
+  BRIEF_DOCS "Used by init_ctest() to prevent it from being called more than \
+once per [sub]project."
+)
+
 # init_ctest()
-#   Assumes configuration of ctest as a dashboard client not by using a
-#     CTestConfig or DartConfig script, but by defining variables to be consumed
-#     by the CTest module; see:
-#     - https://cmake.org/cmake/help/v3.31/manual/ctest.1.html#dashboard-client-configuration
+#   Wrapper for enable_testing() and include(CTest) to allow for per-project
+#     configuration of ctest even when there are multiple subprojects.
 #
-#   Implemented as macro wrapping a function due to cmake's (tested with
-#     v3.27.4) consistent failure to generate CTestTestfile scripts when
-#     enable_testing() was called anywhere but the scope of the project root
-#     listfile.
+#   Limits all ctest config variables to their defaults, except for memcheck,
+#     which can be configured with MEMCHECK_* params instead (**only valgrind is
+#     currently supported**.)
 #
-#   Note that due to ctest expecting CTestConfiguration.ini/
-#     DartConfiguration.tcl in the build root, these settings apply to all
-#     subdirectories, see:
-#     - https://github.com/Kitware/CMake/blob/v3.27.4/Modules/CTestTargets.cmake#L30
+#   Upon return:
+#     - a CTestConfiguration.ini (historically DartConfiguration.tcl) file will
+#         be set in the [sub]project build directory to be read by ctest
+#     - cmake global property ${PROJECT_NAME}_CTEST_INITIALIZED will be set to
+#         TRUE
+#     - ${PROJECT_NAME}_CTEST_MEMCHECK_ENABLED will be cached as a bool to
+#         indicate if ctest is set up to use `--test-action memcheck`
+#     - cmake global property CTEST_TARGETS_ADDED will be set to 1 if not already
+#     - a generic `test` target will be added if not already
+#     - a suite of specialized testing targets will be added if not already, eg
+#         Continuous*, Experimental*, Nightly*
+#     - !!! unlike when calling `include(CTest)`, BUILD_TESTING will not be
+#         cached as ON by default - its state from before init_ctest will be
+#         preserved
 #
-#   Sets CTEST_MEMCHECK_ENABLED if ctest is set up to use
-#     `--test-action memcheck`.
-#   CTest module sets option BUILD_TESTING to toggle testing behavior.
-#
-#   **currently only supports valgrind for memtest**
+#   Notes:
+#     - assumes that user is not using CTestConfig or DartConfig scripts, see:
+#       - https://cmake.org/cmake/help/v3.31/manual/ctest.1.html#dashboard-client-configuration
+#     - implemented as macro wrapping a function due to cmake's (tested with
+#       v3.27.4) consistent failure to generate CTestTestfile scripts when
+#       enable_testing() was called anywhere but the scope of the project root
+#       listfile
+#     - due to ctest expecting CTestConfiguration.ini/DartConfiguration.tcl in
+#       the build root, these settings apply to all project subdirectories, see:
+#       - https://github.com/Kitware/CMake/blob/v3.27.4/Modules/CTestTargets.cmake#L30
 #
 #   MEMCHECK                        (bool, optional):
 #     toggles memcheck on tests
@@ -31,47 +49,21 @@ include_guard(DIRECTORY)
 #     toggles memcheck errors failing tests
 #   MEMCHECK_GENERATES_SUPPRESSIONS (bool, optional):
 #     toggles memcheck generating suppressions file
-#   CTEST_MODULE_VARIABLES          (list, optional):
-#     allows for passing of variables comsumed by CTest module, in
-#       <variable> <value> [<value> ...] format (see above link to dashboard
-#       client configuration for full list); most are passed directly,
-#       but memtest step variables are specially handled:
-#       CUDA_SANITIZER_COMMAND
-#       CUDA_SANITIZER_COMMAND_OPTIONS
-#       DRMEMORY_COMMAND_OPTIONS
-#       DRMEMORY_COMMAND
-#       MEMORYCHECK_COMMAND
-#       MEMORYCHECK_COMMAND_OPTIONS
-#       MEMORYCHECK_SANITIZER_OPTIONS
-#       MEMORYCHECK_SUPPRESSIONS_FILE
-#       MEMORYCHECK_TYPE
-#       PURIFYCOMMAND
-#       VALGRIND_COMMAND
-#       VALGRIND_COMMAND_OPTIONS
-#   OVERRIDE_CACHED                 (bool, optional):
-#     the CTest module caches some variables, so unless this is true,
-#       user-provided values for the following will be ignored when passed
-#       via CTEST_MODULE_VARIABLES:
-#       BZRCOMMAND
-#       COVERAGE_COMMAND
-#       COVERAGE_EXTRA_FLAGS
-#       CTEST_SUBMIT_RETRY_COUNT
-#       CTEST_SUBMIT_RETRY_DELAY
-#       CVSCOMMAND
-#       CVS_UPDATE_OPTIONS
-#       DART_TESTING_TIMEOUT
-#       GITCOMMAND
-#       HGCOMMAND
-#       MAKECOMMAND
-#       MEMORYCHECK_COMMAND
-#       MEMORYCHECK_SUPPRESSIONS_FILE
-#       P4COMMAND
-#       SITE
-#       SVNCOMMAND
+#   MEMCHECK_SUPPRESSIONS_FILE      (string, optional):
+#     path to memcheck suppressions file
+#   MEMCHECK_COMMAND_OPTIONS        (list, optional):
+#     additional memcheck cli options
 #
 macro(init_ctest)
 
-  if(NOT DEFINED PROJECT_SOURCE_DIR OR
+  get_cmake_property(ctest_initialized ${PROJECT_NAME}_CTEST_INITIALIZED)
+  if(ctest_initialized)
+    message(FATAL_ERROR
+      "please only call init_ctest() once per [sub]project")
+  endif()
+
+  if(PROJECT_IS_TOP_LEVEL AND
+      NOT DEFINED PROJECT_SOURCE_DIR OR
       NOT DEFINED PROJECT_NAME)
     message(FATAL_ERROR
       "please call init_ctest() after project()")
@@ -104,188 +96,153 @@ function(_init_ctest_impl)
   endif()
 
   ##
-  ## parse (init_ctest) parameters to ICT_<param>
+  ## Record state of BUILD_TESTING
   ##
 
-  set(options
-    MEMCHECK
-    MEMCHECK_FAILS_TEST
-    MEMCHECK_GENERATES_SUPPRESSIONS
-    OVERRIDE_CACHED
-  )
-  set(single_value_args
-  )
-  set(multi_value_args
-    CTEST_MODULE_VARIABLES
-  )
-  cmake_parse_arguments("ICT"
-    "${options}" "${single_value_args}" "${multi_value_args}" ${ARGN}
-  )
+  if(DEFINED BUILD_TESTING)
+    set(_BUILD_TESTING_defined ON)
+  else()
+    set(_BUILD_TESTING_defined OFF)
+  endif()
+  if(DEFINED CACHE{BUILD_TESTING})
+    set(_BUILD_TESTING_cached ON)
+  else()
+    set(_BUILD_TESTING_cached OFF)
+  endif()
+  if(_BUILD_TESTING_defined OR _BUILD_TESTING_cached)
+    if(NOT BUILD_TESTING)
+      return()
+    endif()
+    set(_BUILD_TESTING_value ${BUILD_TESTING})
+  endif()
 
   ##
-  ## parse ICT_CTEST_MODULE_VARIABLES into MV_<module variable>
+  ## Restrict use of CTest module variables to defaults
   ##
 
-  # possible CTest module variables:
+  # Variables used to configure DartConfiguration.tcl, see:
+  #   - https://github.com/Kitware/CMake/blob/v3.31.0/Modules/CTest.cmake
+  #   - https://github.com/Kitware/CMake/blob/v3.31.0/Modules/DartConfiguration.tcl.in
   #   - https://cmake.org/cmake/help/v3.31/manual/ctest.1.html#dashboard-client-configuration
-  set(option_modvars
-  )
-  set(single_value_modvars
-    BUILDNAME
-    CMAKE_COMMAND
-    COVERAGE_COMMAND
-    CTEST_CDASH_VERSION
-    CTEST_DROP_SITE_CDASH
+  set(ctest_uncached_dart_config_vars
+    BUILDNAME                        # CTest default: (derived from system and compiler names)
+    #CMAKE_COMMAND                   # general cmake variable (do not unset)
+    #CMAKE_CXX_COMPILER              # general cmake variable (do not unset)
+    #CMAKE_CXX_COMPILER_VERSION      # general cmake variable (do not unset)
+    CTEST_COST_DATA_FILE
+    CTEST_CURL_OPTIONS               # (deprecated in favor of CTEST_TLS_VERIFY)
     CTEST_GIT_INIT_SUBMODULES
     CTEST_GIT_UPDATE_CUSTOM
+    CTEST_LABELS_FOR_SUBPROJECTS
     CTEST_P4_CLIENT
+    CTEST_P4_OPTIONS
     CTEST_P4_UPDATE_CUSTOM
-    CTEST_RESOURCE_SPEC_FILE
+    CTEST_P4_UPDATE_OPTIONS
     CTEST_SUBMIT_INACTIVITY_TIMEOUT
-    CTEST_SUBMIT_RETRY_COUNT
-    CTEST_SUBMIT_RETRY_DELAY
+    CTEST_SVN_OPTIONS
     CTEST_TEST_LOAD
+    CTEST_UPDATE_VERSION_ONLY
+    CTEST_USE_LAUNCHERS
     CTEST_TLS_VERIFY
     CTEST_TLS_VERSION
-    CTEST_USE_LAUNCHERS
     CUDA_SANITIZER_COMMAND
-    CVSCOMMAND
-    DART_TESTING_TIMEOUT
-    DEFAULT_CTEST_CONFIGURATION_TYPE
-    DRMEMORY_COMMAND
-    DROP_LOCATION
-    DROP_METHOD
-    DROP_SITE
-    DROP_SITE_PASSWORD
-    DROP_SITE_USER
-    GITCOMMAND
-    MAKECOMMAND
-    MEMORYCHECK_COMMAND
-    MEMORYCHECK_SUPPRESSIONS_FILE
-    MEMORYCHECK_TYPE
-    NIGHTLY_START_TIME
-    P4COMMAND
-    PROJECT_BINARY_DIR
-    PROJECT_SOURCE_DIR
-    PURIFYCOMMAND
-    SITE
-    SUBMIT_URL
-    SVNCOMMAND
-    TRIGGER_SITE
-    UPDATE_TYPE
-    VALGRIND_COMMAND
-  )
-  # most multi-value module variables will be converted to space-delimited
-  #   strings for CTest module, with the exception of CTEST_LABELS_FOR_SUBPROJECTS,
-  #   which can remain a list/semicolon-delimited string
-  set(multi_value_modvars
-    COVERAGE_EXTRA_FLAGS
-    CTEST_CURL_OPTIONS
-    CTEST_LABELS_FOR_SUBPROJECTS
-    CTEST_P4_OPTIONS
-    CTEST_P4_UPDATE_OPTIONS
-    CTEST_SVN_OPTIONS
     CUDA_SANITIZER_COMMAND_OPTIONS
-    CVS_UPDATE_OPTIONS
+    DEFAULT_CTEST_CONFIGURATION_TYPE # CTest default: Release, or from ENV
+    DRMEMORY_COMMAND
     DRMEMORY_COMMAND_OPTIONS
     GIT_UPDATE_OPTIONS
     MEMORYCHECK_COMMAND_OPTIONS
     MEMORYCHECK_SANITIZER_OPTIONS
+    MEMORYCHECK_TYPE
+    NIGHTLY_START_TIME               # CTest default: "00:00:00 EDT"
+    #PROJECT_BINARY_DIR              # general cmake variable (do not unset)
+    #PROJECT_SOURCE_DIR              # general cmake variable (do not unset)
+    PURIFYCOMMAND
+    SUBMIT_URL                       # CTest default: (combination of CTEST_DROP_* vars)
     SVN_UPDATE_OPTIONS
-    UPDATE_OPTIONS
+    UPDATE_COMMAND                   # CTest default: (based on UPDATE_TYPE)
+    UPDATE_OPTIONS                   # CTest default: (based on UPDATE_TYPE)
+    UPDATE_TYPE                      # CTest default: (search for .git, etc)
+    VALGRIND_COMMAND
     VALGRIND_COMMAND_OPTIONS
   )
-  cmake_parse_arguments("MV"
-    "${option_modvars}" "${single_value_modvars}" "${multi_value_modvars}"
-    ${ICT_CTEST_MODULE_VARIABLES}
+
+  set(SUBMIT_URL_dependency_vars
+    CTEST_DROP_LOCATION
+    CTEST_DROP_METHOD
+    CTEST_DROP_SITE
+    CTEST_DROP_SITE_USER
+    CTEST_DROP_SITE_PASWORD
+    CTEST_DROP_SITE_MODE
   )
 
-  ##
-  ## set up override of CTest module caching of defaults for some variables
-  ##
-
-  set(cached_modvars
-    BZRCOMMAND
-    COVERAGE_COMMAND
-    COVERAGE_EXTRA_FLAGS
-    CTEST_SUBMIT_RETRY_COUNT
-    CTEST_SUBMIT_RETRY_DELAY
-    CVSCOMMAND
-    CVS_UPDATE_OPTIONS
-    DART_TESTING_TIMEOUT
-    GITCOMMAND
-    HGCOMMAND
-    MAKECOMMAND
-    MEMORYCHECK_COMMAND
-    MEMORYCHECK_SUPPRESSIONS_FILE
-    P4COMMAND
-    SITE
-    SVNCOMMAND
+  set(ctest_cached_dart_config_vars
+    COVERAGE_COMMAND                 # CTest default: find_program(gcov)
+    COVERAGE_EXTRA_FLAGS             # CTest default: "-l"
+    CTEST_SUBMIT_RETRY_COUNT         # CTest default: 3
+    CTEST_SUBMIT_RETRY_DELAY         # CTest default: 5
+    CVSCOMMAND                       # CTest default: find_program(cvs)
+    CVS_UPDATE_OPTIONS               # CTest default: "-d -A -P"
+    DART_TESTING_TIMEOUT             # CTest default: 1500
+    GITCOMMAND                       # CTest default: find_program(git)
+    MAKECOMMAND                      # CTest default: build_command()
+    MEMORYCHECK_COMMAND              # CTest default: find_program(purify git...)
+    MEMORYCHECK_SUPPRESSIONS_FILE    # CTest default: ""
+    P4COMMAND                        # CTest default: find_program(p4)
+    SITE                             # CTest default: cmake_host_system_information()
+    SVNCOMMAND                       # CTest default: find_program(svn)
   )
-  if(NOT ICT_OVERRIDE_CACHED)
-    foreach(modvar ${cached_modvars})
-      if(MV_${modvar})
-        list(APPEND warning_modvars ${modvar})
-      endif()
-    endforeach()
-    if(warning_modvars)
-      list(JOIN warning_modvars " " warning_modvars)
-      # indent cmake warnings and errors to skip autoformatting, see:
-      #   - https://stackoverflow.com/a/51035045
+
+  foreach(var
+      ${ctest_uncached_dart_config_vars}
+      ${SUBMIT_URL_dependency_vars})
+    unset(${var})
+    if(PROJECT_IS_NOT_TOP_LEVEL AND DEFINED CACHE{var})
       message(WARNING
-        " init_ctest(): the following CTest module variables:\n"
-        "     ${warning_modvars}\n"
-        " may be ignored by module unless init_ctest(OVERRIDE_CACHED) is ON\n")
+        "${PROJECT_NAME}: init_ctest(${ARGN}): detected CTest module variable \
+${var} in cache; it may contaminate ctest config settings in other subprojects")
     endif()
-  endif()
+  endforeach()
 
   ##
-  ## special handling of memcheck module variables
+  ## Parse parameters and set CTest memcheck vars
   ##
 
   # memcheck subset of CTest module variables, see:
   #   - https://cmake.org/cmake/help/v3.31/manual/ctest.1.html#ctest-memcheck-step
 
-  # TBD allow memcheck tools other than valgrind
-  if((MV_MEMORYCHECK_TYPE AND
-        NOT MV_MEMORYCHECK_TYPE STREQUAL "Valgrind") OR
-      MV_CUDA_SANITIZER_COMMAND OR
-      MV_CUDA_SANITIZER_COMMAND_OPTIONS OR
-      MV_DRMEMORY_COMMAND OR
-      MV_DRMEMORY_COMMAND_OPTIONS OR
-      MV_MEMORYCHECK_SANITIZER_OPTIONS OR
-      MV_PURIFYCOMMAND)
-    message(FATAL_ERROR
-      "init_ctest() currently only supports memcheck with valgrind")
+  set(options
+    MEMCHECK
+    MEMCHECK_FAILS_TEST
+    MEMCHECK_GENERATES_SUPPRESSIONS
+  )
+  set(single_value_args
+    MEMCHECK_SUPPRESSIONS_FILE
+  )
+  set(multi_value_args
+    MEMCHECK_COMMAND_OPTIONS
+  )
+  cmake_parse_arguments("_ARG"
+    "${options}" "${single_value_args}" "${multi_value_args}" ${ARGN}
+  )
+
+  if(_ARG_MEMCHECK_FAILS_TEST OR
+      _ARG_MEMCHECK_GENERATES_SUPPRESSIONS OR
+      _ARG_MEMCHECK_SUPPRESSIONS_FILE OR
+      _ARG_MEMCHECK_COMMAND_OPTIONS)
+    set(_ARG_MEMCHECK ON)
   endif()
-  if(ICT_MEMCHECK_FAILS_TEST OR
-      ICT_MEMCHECK_GENERATES_SUPPRESSIONS OR
-      MV_MEMORYCHECK_TYPE OR
-      MV_MEMORYCHECK_COMMAND OR
-      MV_MEMORYCHECK_COMMAND_OPTIONS OR
-      MV_MEMORYCHECK_SUPPRESSIONS_FILE OR
-      MV_VALGRIND_COMMAND OR
-      MV_VALGRIND_COMMAND_OPTIONS
+  if(_ARG_MEMCHECK)
+    # CTest module sets cache var MEMORYCHECK_COMMAND by using similar call to
+    #   find_program, see:
+    #   - https://github.com/Kitware/CMake/blob/v3.30.4/Modules/CTest.cmake#L175
+    # Doing so here by default allows for earlier determination of selected
+    #   program, and thus the appropriate memcheck options to select
+    find_program(memcheck_command
+      NAMES purify valgrind boundscheck drmemory cuda-memcheck compute-sanitizer
+      PATHS "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Rational Software\\Purify\\Setup;InstallFolder]"
+      NO_CACHE
     )
-    set(ICT_MEMCHECK ON)
-  endif()
-  if(ICT_MEMCHECK)
-    if(MV_MEMORYCHECK_COMMAND)
-      set(memcheck_command ${MV_MEMORYCHECK_COMMAND})
-    elseif(MV_VALGRIND_COMMAND)
-      set(memcheck_command ${MV_VALGRIND_COMMAND})
-    else()
-      # CTest module sets cache var MEMORYCHECK_COMMAND by using similar call to
-      #   find_program, see:
-      #   - https://github.com/Kitware/CMake/blob/v3.30.4/Modules/CTest.cmake#L175
-      # Doing so here by default allows for earlier determination of selected
-      #   program, and thus the appropriate memcheck options to select
-      find_program(memcheck_command
-        NAMES purify valgrind boundscheck drmemory cuda-memcheck compute-sanitizer
-        PATHS "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Rational Software\\Purify\\Setup;InstallFolder]"
-        NO_CACHE
-      )
-    endif()
     # TBD could not find manuals for purify, boundscheck, drmemory
     # https://docs.nvidia.com/cuda/archive/11.7.0/cuda-memcheck/index.html#memcheck-tool
     # https://docs.nvidia.com/compute-sanitizer/ComputeSanitizer/index.html#command-line-options
@@ -293,16 +250,15 @@ function(_init_ctest_impl)
       message(FATAL_ERROR
         "init_ctest() currently only supports memcheck with valgrind")
     endif()
-    if(ICT_OVERRIDE_CACHED)
-      unset(MEMORYCHECK_COMMAND CACHE)
-    endif()
+    # CACHE FORCE to supersede both find_program call in CTest and any prior
+    #   cached value
     set(MEMORYCHECK_COMMAND ${memcheck_command} CACHE FILEPATH
       "Path to the memory checking command, used for memory error detection."
+      FORCE
     )
-    if(MV_MEMORYCHECK_COMMAND_OPTIONS)
-      set(memcheck_options ${MV_MEMORYCHECK_COMMAND_OPTIONS})
-    elseif(MV_VALGRIND_COMMAND_OPTIONS)
-      set(memcheck_options ${MV_VALGRIND_COMMAND_OPTIONS})
+
+    if(_ARG_MEMCHECK_COMMAND_OPTIONS)
+      set(memcheck_options ${_ARG_MEMCHECK_COMMAND_OPTIONS})
     else()
       # Default valgrind options not passed if user supplies any of their own, see:
       #   - https://github.com/Kitware/CMake/blob/v3.30.4/Source/CTest/cmCTestMemCheckHandler.cxx#L584
@@ -311,69 +267,29 @@ function(_init_ctest_impl)
         "--num-callers=50"
       )
     endif()
-    if(ICT_MEMCHECK_FAILS_TEST)
+    if(_ARG_MEMCHECK_FAILS_TEST)
       list(APPEND memcheck_options "--error-exitcode=255")
     endif()
-    if(ICT_MEMCHECK_GENERATES_SUPPRESSIONS)
+    if(_ARG_MEMCHECK_GENERATES_SUPPRESSIONS)
       list(APPEND memcheck_options "--gen-suppressions=all")
     endif()
-    # join into CLI-friendly string, not a cached module variable
+    # join into CLI-friendly string
     list(JOIN memcheck_options " " MEMORYCHECK_COMMAND_OPTIONS)
-    # MEMORYCHECK_SUPPRESSIONS_FILE cache set to "" in CTest, see:
-    #   - https://github.com/Kitware/CMake/blob/v3.30.4/Modules/CTest.cmake#L181
-    if(MV_MEMORYCHECK_SUPPRESSIONS_FILE)
-      if(ICT_OVERRIDE_CACHED)
-        unset(MEMORYCHECK_SUPPRESSIONS_FILE CACHE)
-      endif()
-      set(MEMORYCHECK_SUPPRESSIONS_FILE "${MV_MEMORYCHECK_SUPPRESSIONS_FILE}"
-        CACHE FILEPATH
-        "File that contains suppressions for the memory checker")
+    # CACHE FORCE to supersede both CTest setting to default of "" and any
+    #   prior cached value
+    if(_ARG_MEMCHECK_SUPPRESSIONS_FILE)
+      set(MEMORYCHECK_SUPPRESSIONS_FILE "${_ARG_MEMCHECK_SUPPRESSIONS_FILE}"
+        CACHE FILEPATH "File that contains suppressions for the memory checker"
+        FORCE
+      )
     endif()
-  endif(ICT_MEMCHECK)
-  set(CTEST_MEMCHECK_ENABLED ${ICT_MEMCHECK} PARENT_SCOPE)
-  # memcheck variables handled above can skip batch processing in next step
-  foreach(memcheck_modvar
-      MV_CUDA_SANITIZER_COMMAND
-      MV_CUDA_SANITIZER_COMMAND_OPTIONS
-      MV_DRMEMORY_COMMAND
-      MV_DRMEMORY_COMMAND_OPTIONS
-      MV_MEMORYCHECK_COMMAND
-      MV_MEMORYCHECK_COMMAND_OPTIONS
-      MV_MEMORYCHECK_SANITIZER_OPTIONS
-      MV_MEMORYCHECK_SUPPRESSIONS_FILE
-      MV_MEMORYCHECK_TYPE
-      MV_PURIFYCOMMAND
-      MV_VALGRIND_COMMAND
-      MV_VALGRIND_COMMAND_OPTIONS
-    )
-    unset(${memcheck_modvar})
-  endforeach()
+  endif(_ARG_MEMCHECK)
+
+  set(${PROJECT_NAME}_CTEST_MEMCHECK_ENABLED ${_ARG_MEMCHECK} CACHE BOOL
+    "${PROJECT_NAME} ctest custom targets may add `--test-action memcheck`" FORCE)
 
   ##
-  ## batch process all remaining module variables for consumption by CTest
-  ##
-
-  set(_inside_init_ctest_impl YES)
-  foreach(modvar ${single_value_modvars})
-    if(MV_${modvar})
-      _set_ctest_modvar(${modvar} ${MV_${modvar}})
-    endif()
-  endforeach()
-  foreach(modvar ${multi_value_modvars})
-    if(MV_${modvar})
-      # most multi-arg module variables are meant to be string of CLI options
-      if(NOT modvar STREQUAL "CTEST_LABELS_FOR_SUBPROJECTS")
-        list(JOIN MV_${modvar} " " list_as_string)
-      else()
-        set(list_as_string "${MV_${modvar}}")
-      endif()
-      _set_ctest_modvar(${modvar} "${list_as_string}")
-    endif()
-  endforeach()
-  unset(_inside_init_ctest_impl)
-
-  ##
-  ## CTest module consumes variables to configure ctest
+  ## CTest module consumes variables to configure DartConfiguration.tcl.in
   ##
 
   # use modern config file name CTestConfiguration.ini over traditional
@@ -382,32 +298,20 @@ function(_init_ctest_impl)
   include(CTest)
   # BUILD_TESTING now indicates readiness to add tests
 
+  set_property(GLOBAL PROPERTY ${PROJECT_NAME}_CTEST_INITIALIZED TRUE)
+
+  ##
+  ## Restore state of BUILD_TESTING
+  ##
+
+  unset(BUILD_TESTING CACHE)
+  unset(BUILD_TESTING)
+  if(_BUILD_TESTING_cached)
+    # Using default docstring from CTest.cmake option(BUILD_TESTING) call, see:
+    #   - https://github.com/Kitware/CMake/blob/v3.31.0/Modules/CTest.cmake#L50
+    set(BUILD_TESTING ${_BUILD_TESTING_value} CACHE BOOL
+      "Build the testing tree.")
+  elseif(_BUILD_TESTING_defined)
+    set(BUILD_TESTING ${_BUILD_TESTING_value})
+  endif()
 endfunction()
-
-# _set_ctest_modvar(modvar value)
-#   Implementation detail of _init_ctest_impl(), conditionally sets CTest module
-#     variables
-#
-macro(_set_ctest_modvar modvar value)
-
-  if(NOT _inside_init_ctest_impl)
-    message(FATAL_ERROR
-      "_set_ctest_modvar() can only be called as part of _init_ctest_impl()")
-  endif()
-
-  if("${modvar}" IN_LIST cached_modvars)
-    if(ICT_OVERRIDE_CACHED)
-      unset(${modvar} CACHE)
-    endif()
-    if("${modvar}" MATCHES "^.*COMMAND$")
-      set(type FILEPATH)
-    else()
-      set(type STRING)
-    endif()
-    set(${modvar} ${value} CACHE ${type}
-      "cached to override CTest module caching of same variable")
-  else()
-    set(${modvar} ${value})
-  endif()
-
-endmacro()
