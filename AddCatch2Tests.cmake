@@ -24,9 +24,15 @@ endif()
 #
 function(add_catch2_tests target)
 
-  if(NOT TARGET ${target} OR
-      NOT BUILD_TESTING)  # set by CTest module
+  if(NOT TARGET ${target})
     return()
+  endif()
+
+  # custom global property set by init_ctest()
+  get_cmake_property(ctest_initialized ${PROJECT_NAME}_CTEST_INITIALIZED)
+  if(NOT ctest_initialized)
+    message(FATAL_ERROR "please call init_ctest() in [sub]project root lists \
+file before adding tests")
   endif()
 
   # custom target property set by setup_integrated_linters()
@@ -50,7 +56,7 @@ treated like system headers and thus not generate errors from expanded macros.")
   )
   set(multi_value_args
   )
-  cmake_parse_arguments("AC2T"
+  cmake_parse_arguments("_ARGS"
     "${options}" "${single_value_args}" "${multi_value_args}" ${ARGN}
   )
 
@@ -100,8 +106,8 @@ treated like system headers and thus not generate errors from expanded macros.")
     #   errors on skipped tests use --verbose instead
     "--output-on-failure"
   )
-  if(AC2T_MEMCHECK)
-    if(NOT CTEST_MEMCHECK_ENABLED)
+  if(_ARGS_MEMCHECK)
+    if(NOT ${PROJECT_NAME}_CTEST_MEMCHECK_ENABLED)
       message(FATAL_ERROR
         "adding tests with MEMCHECK enabled requires proper setup of memcheck \
 via init_ctest() parameters")
@@ -110,14 +116,14 @@ via init_ctest() parameters")
       "--test-action" "memcheck"
     )
   endif()
-  if(AC2T_TEST_NAME_REGEX)
+  if(_ARGS_TEST_NAME_REGEX)
     # If dependencies are fetched and not found, during configuration
     #   dependencies may register their own tests; --tests-regex used here to
     #   filter out any tests not defiend in target. Would prefer to filter by
     #   label, but labels are not properly imported from Catch2 tags, see:
     #   - https://github.com/catchorg/Catch2/issues/1590
     list(APPEND ctest_command
-      "--tests-regex" "\"${AC2T_TEST_NAME_REGEX}\""
+      "--tests-regex" "\"${_ARGS_TEST_NAME_REGEX}\""
     )
   endif()
 
