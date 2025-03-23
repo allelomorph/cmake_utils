@@ -101,7 +101,31 @@ set(patch_paths
 list(JOIN patch_paths " " patch_paths)
 
 set(BUILD_YAML ON CACHE BOOL "build Doxide libyaml dependency from source")
-set(BUILD_TESTING OFF CACHE BOOL "skip building Doxide libyaml dependency tests")
+# In practice, when configuring doxide with FetchContent, its submodule
+#   dependency libyaml may cache BUILD_TESTING=ON by calling `include(CTest)`,
+#   which in turn calls `option(BUILD_TESTING ON)`. This will affect the parent
+#   project's cache, rather than doxide's subbuild cache, which can impact the
+#   parent project's calls to `include(CTest)` later in the current config or on
+#   subsequent configs.
+# To prevent this, we record the current project's state of the BUILD_TESTING
+#   variable, and restore it at the end of the fetching process.
+# - https://github.com/lawmurray/doxide/tree/v0.9.0/contrib
+# - https://github.com/yaml/libyaml/blob/2c891fc7a770e8ba2fec34fc6b545c672beb37e6/CMakeLists.txt#L101
+if(DEFINED BUILD_TESTING)
+  set(_BUILD_TESTING_defined ON)
+else()
+  set(_BUILD_TESTING_defined OFF)
+endif()
+if(DEFINED CACHE{BUILD_TESTING})
+  set(_BUILD_TESTING_cached ON)
+else()
+  set(_BUILD_TESTING_cached OFF)
+endif()
+if(_BUILD_TESTING_defined OR _BUILD_TESTING_cached)
+  set(_BUILD_TESTING_value ${BUILD_TESTING})
+endif()
+unset(BUILD_TESTING)
+set(BUILD_TESTING OFF CACHE BOOL "libyaml test toggle" FORCE)
 
 # Each *_COMMAND works best when internally idempotent, always exits with 0,
 #   and contains no enescaped semicolons
@@ -122,3 +146,16 @@ unset(git_tag)
 unset(fc_src_dir)
 unset(clone_options)
 unset(patch_paths)
+unset(BUILD_YAML CACHE)
+
+# Restore current project's BUILD_TESTING state (see above)
+unset(BUILD_TESTING CACHE)
+unset(BUILD_TESTING)
+if(_BUILD_TESTING_cached)
+  # Using default docstring from CTest.cmake option(BUILD_TESTING) call, see:
+  #   - https://github.com/Kitware/CMake/blob/v3.31.0/Modules/CTest.cmake#L50
+  set(BUILD_TESTING ${_BUILD_TESTING_value} CACHE BOOL
+    "Build the testing tree.")
+elseif(_BUILD_TESTING_defined)
+  set(BUILD_TESTING ${_BUILD_TESTING_value})
+endif()
