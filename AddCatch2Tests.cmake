@@ -9,6 +9,10 @@ if(NOT (DEFINED Catch2_VERSION AND
   include(GetCatch2)
 endif()
 
+if(NOT ${Catch2_VERSION} VERSION_GREATER_EQUAL "3.0.0")
+  message(FATAL_ERROR "add_catch2_tests: currently only supporting Catch2 v3.x")
+endif()
+
 if(NOT COMMAND catch_discover_tests)
   include(Catch)
 endif()
@@ -64,13 +68,6 @@ treated like system headers and thus not generate errors from expanded macros.")
   ## set up linking to Catch2
   ##
 
-  # _CATCH_VERSION_MAJOR intended to allow selective header inclusion to
-  #   accommodate both Catch2 v2 and v3 (leading underscore to prevent shadowing
-  #   CATCH_VERSION_MAJOR, which may be defined by selected Catch2 headers)
-  target_compile_definitions(${target}
-    PUBLIC
-      _CATCH_VERSION_MAJOR=${Catch2_VERSION_MAJOR}
-    )
   target_link_libraries(${target}
     PRIVATE
       Catch2::Catch2WithMain
