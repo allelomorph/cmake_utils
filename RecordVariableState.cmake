@@ -8,7 +8,7 @@ include_guard(DIRECTORY)
 #
 #   varname (string): name of variable to record
 #
-macro(record_variable_state varname)
+function(record_variable_state varname)
 
   if(DEFINED ${varname})
     set(_${varname}_defined ON)
@@ -24,15 +24,27 @@ macro(record_variable_state varname)
     set(_${varname}_value ${${varname}})
   endif()
 
-  set(_${varname}_state_recorded ${CMAKE_CURRENT_LIST_FILE})
+  set(_${varname}_defined ${_${varname}_defined} CACHE BOOL
+    "internal record_variable_state variable"
+  )
+  set(_${varname}_cached ${_${varname}_cached} CACHE BOOL
+    "internal record_variable_state variable"
+  )
+  set(_${varname}_value ${_${varname}_value} CACHE STRING
+    "internal record_variable_state variable"
+  )
+  set(_${varname}_state_recorded ${CMAKE_CURRENT_LIST_FILE} CACHE STRING
+    "internal record_variable_state variable"
+  )
 
-  # cleanup in case restore_variable_state(${varname}) is never called in scope
-  cmake_language(DEFER CALL unset _${varname}_state_recorded)
-  cmake_language(DEFER CALL unset _${varname}_defined)
-  cmake_language(DEFER CALL unset _${varname}_cached)
-  cmake_language(DEFER CALL unset _${varname}_value)
+  # cleanup in case restore_variable_state(${varname}) is never called in
+  #   directory scope
+  cmake_language(DEFER CALL unset _${varname}_state_recorded CACHE)
+  cmake_language(DEFER CALL unset _${varname}_defined CACHE)
+  cmake_language(DEFER CALL unset _${varname}_cached CACHE)
+  cmake_language(DEFER CALL unset _${varname}_value CACHE)
 
-endmacro()
+endfunction()
 
 # restore_variable_state(varname)
 #   Restores variable's state from last call to record_variable_state in same
@@ -41,9 +53,9 @@ endmacro()
 #   varname (string): name of variable to restore
 #   DOCSTRING (string, optional): docstring to provide when recaching variable
 #
-macro(restore_variable_state varname)
+function(restore_variable_state varname)
 
-  if(NOT DEFINED _${varname}_state_recorded OR
+  if(NOT DEFINED CACHE{_${varname}_state_recorded} OR
       NOT ${_${varname}_state_recorded} STREQUAL ${CMAKE_CURRENT_LIST_FILE})
     message(FATAL_ERROR
       "no matching prior call to record_variable_state(${varname}) made in \
@@ -66,10 +78,6 @@ same script/listfile")
     set(docstring "cached value restored by restore_variable_state(${ARGN}) in \
 ${CMAKE_CURRENT_LIST_FILE}")
   endif()
-  unset(options)
-  unset(single_value_args)
-  unset(multi_value_args)
-  unset(_ARGS_DOCSTRING)
 
   unset(${varname} CACHE)
   unset(${varname})
@@ -78,11 +86,10 @@ ${CMAKE_CURRENT_LIST_FILE}")
   elseif(_${varname}_defined)
     set(${varname} ${_${varname}_value})
   endif()
-  unset(docstring)
 
-  unset(_${varname}_state_recorded)
-  unset(_${varname}_defined)
-  unset(_${varname}_cached)
-  unset(_${varname}_value)
+  unset(_${varname}_state_recorded CACHE)
+  unset(_${varname}_defined CACHE)
+  unset(_${varname}_cached CACHE)
+  unset(_${varname}_value CACHE)
 
-endmacro()
+endfunction()
