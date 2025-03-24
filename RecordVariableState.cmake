@@ -39,6 +39,7 @@ endmacro()
 #     script/listfile: value, if defined, and cache status
 #
 #   varname (string): name of variable to restore
+#   DOCSTRING (string, optional): docstring to provide when recaching variable
 #
 macro(restore_variable_state varname)
 
@@ -49,17 +50,35 @@ macro(restore_variable_state varname)
 same script/listfile")
   endif()
 
+  set(options)
+  set(single_value_args
+    DOCSTRING
+  )
+  set(multi_value_args)
+  cmake_parse_arguments("_ARGS"
+    "${options}" "${single_value_args}" "${multi_value_args}" ${ARGN}
+  )
+  # TBD Is there really no way to get a docstring from a CACHE var unless
+  #   already written to CMakeCache.txt in a previous config step?
+  if(DEFINED _ARGS_DOCSTRING)
+    set(docstring ${_ARGS_DOCSTRING})
+  else()
+    set(docstring "cached value restored by restore_variable_state(${ARGN}) in \
+${CMAKE_CURRENT_LIST_FILE}")
+  endif()
+  unset(options)
+  unset(single_value_args)
+  unset(multi_value_args)
+  unset(_ARGS_DOCSTRING)
+
   unset(${varname} CACHE)
   unset(${varname})
   if(_${varname}_cached)
-    # TBD Is there really no way to get a docstring from a CACHE var unless
-    #   already written to CMakeCache.txt in a previous config step?
-    set(${varname} ${_${varname}_value} CACHE BOOL
-      "cached value restored by restore_variable_state(${ARGN}) in \
-${CMAKE_CURRENT_LIST_FILE}")
+    set(${varname} ${_${varname}_value} CACHE BOOL "${docstring}")
   elseif(_${varname}_defined)
     set(${varname} ${_${varname}_value})
   endif()
+  unset(docstring)
 
   unset(_${varname}_state_recorded)
   unset(_${varname}_defined)
