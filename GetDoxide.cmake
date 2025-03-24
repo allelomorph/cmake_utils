@@ -10,6 +10,11 @@ if(NOT COMMAND FetchContent_Declare OR
   include(FetchContent)
 endif()
 
+if(NOT COMMAND record_variable_state OR
+    NOT COMMAND restore_variable_state)
+  include(RecordVariableState)
+endif()
+
 set(patch_path ${CMAKE_CURRENT_BINARY_DIR}/patches/doxide)
 
 # Updating use of CMAKE_SOURCE_DIR to CMAKE_CURRENT_SOURCE_DIR allows it to
@@ -111,19 +116,7 @@ set(BUILD_YAML ON CACHE BOOL "build Doxide libyaml dependency from source")
 #   variable, and restore it at the end of the fetching process.
 # - https://github.com/lawmurray/doxide/tree/v0.9.0/contrib
 # - https://github.com/yaml/libyaml/blob/2c891fc7a770e8ba2fec34fc6b545c672beb37e6/CMakeLists.txt#L101
-if(DEFINED BUILD_TESTING)
-  set(_BUILD_TESTING_defined ON)
-else()
-  set(_BUILD_TESTING_defined OFF)
-endif()
-if(DEFINED CACHE{BUILD_TESTING})
-  set(_BUILD_TESTING_cached ON)
-else()
-  set(_BUILD_TESTING_cached OFF)
-endif()
-if(_BUILD_TESTING_defined OR _BUILD_TESTING_cached)
-  set(_BUILD_TESTING_value ${BUILD_TESTING})
-endif()
+record_variable_state(BUILD_TESTING)
 unset(BUILD_TESTING)
 set(BUILD_TESTING OFF CACHE BOOL "libyaml test toggle" FORCE)
 
@@ -148,14 +141,8 @@ unset(clone_options)
 unset(patch_paths)
 unset(BUILD_YAML CACHE)
 
-# Restore current project's BUILD_TESTING state (see above)
-unset(BUILD_TESTING CACHE)
-unset(BUILD_TESTING)
-if(_BUILD_TESTING_cached)
-  # Using default docstring from CTest.cmake option(BUILD_TESTING) call, see:
-  #   - https://github.com/Kitware/CMake/blob/v3.31.0/Modules/CTest.cmake#L50
-  set(BUILD_TESTING ${_BUILD_TESTING_value} CACHE BOOL
-    "Build the testing tree.")
-elseif(_BUILD_TESTING_defined)
-  set(BUILD_TESTING ${_BUILD_TESTING_value})
-endif()
+# Using default docstring from CTest.cmake option(BUILD_TESTING) call, see:
+#   - https://github.com/Kitware/CMake/blob/v3.31.0/Modules/CTest.cmake#L50
+restore_variable_state(BUILD_TESTING
+  TYPE BOOL
+  DOCSTRING "Build the testing tree.")

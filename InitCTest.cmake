@@ -3,6 +3,11 @@ cmake_minimum_required(VERSION 3.15)
 
 include_guard(DIRECTORY)
 
+if(NOT COMMAND record_variable_state OR
+    NOT COMMAND restore_variable_state)
+  include(RecordVariableState)
+endif()
+
 define_property(GLOBAL PROPERTY
   ${PROJECT_NAME}_CTEST_INITIALIZED
   BRIEF_DOCS "Used by init_ctest() to prevent it from being called more than \
@@ -95,25 +100,10 @@ function(_init_ctest_impl)
       "_init_ctest_impl() can only be called as part of init_ctest()")
   endif()
 
-  ##
-  ## Record state of BUILD_TESTING
-  ##
-
-  if(DEFINED BUILD_TESTING)
-    set(_BUILD_TESTING_defined ON)
-  else()
-    set(_BUILD_TESTING_defined OFF)
-  endif()
-  if(DEFINED CACHE{BUILD_TESTING})
-    set(_BUILD_TESTING_cached ON)
-  else()
-    set(_BUILD_TESTING_cached OFF)
-  endif()
-  if(_BUILD_TESTING_defined OR _BUILD_TESTING_cached)
-    if(NOT BUILD_TESTING)
-      return()
-    endif()
-    set(_BUILD_TESTING_value ${BUILD_TESTING})
+  record_variable_state(BUILD_TESTING)
+  if(_BUILD_TESTING_defined OR _BUILD_TESTING_cached AND
+      NOT BUILD_TESTING)
+    return()
   endif()
 
   ##
@@ -300,18 +290,11 @@ ${var} in cache; it may contaminate ctest config settings in other subprojects")
 
   set_property(GLOBAL PROPERTY ${PROJECT_NAME}_CTEST_INITIALIZED TRUE)
 
-  ##
-  ## Restore state of BUILD_TESTING
-  ##
+  # Using default docstring from CTest.cmake option(BUILD_TESTING) call, see:
+  #   - https://github.com/Kitware/CMake/blob/v3.31.0/Modules/CTest.cmake#L50
+  restore_variable_state(BUILD_TESTING
+    TYPE BOOL
+    DOCSTRING "Build the testing tree."
+  )
 
-  unset(BUILD_TESTING CACHE)
-  unset(BUILD_TESTING)
-  if(_BUILD_TESTING_cached)
-    # Using default docstring from CTest.cmake option(BUILD_TESTING) call, see:
-    #   - https://github.com/Kitware/CMake/blob/v3.31.0/Modules/CTest.cmake#L50
-    set(BUILD_TESTING ${_BUILD_TESTING_value} CACHE BOOL
-      "Build the testing tree.")
-  elseif(_BUILD_TESTING_defined)
-    set(BUILD_TESTING ${_BUILD_TESTING_value})
-  endif()
 endfunction()
