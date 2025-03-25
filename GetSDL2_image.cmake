@@ -10,6 +10,25 @@ if(NOT COMMAND fetch_if_not_found)
   include(FetchIfNotFound)
 endif()
 
+if(NOT COMMAND record_variable_state OR
+    NOT COMMAND restore_variable_state)
+  include(RecordVariableState)
+endif()
+
+# In theory, dependencies configured with FetchContent should maintain their own
+#   subbuild cache. In practice, sometimes calls to option() or set(CACHE) will
+#   set variables in the parent project's cache, which can cause problems. Here
+#   it is SDL_image's calls to set(BUILD_TESTING OFF CACHE ... FORCE), both in
+#   its own listfile and in submodule dependency libjxl, which can affect later
+#   calls to include(CTest) in sibling subprojects or on subsequent configs. To
+#   prevent this, we record the current project's state of the BUILD_TESTING
+#   variable, and restore it at the end of the fetching process.
+#   - https://github.com/libsdl-org/SDL_image/blob/release-2.8.0/CMakeLists.txt#L488
+#   - https://github.com/libsdl-org/SDL_image/tree/release-2.8.0/external
+#   - https://github.com/libsdl-org/libjxl/blob/19cfa74afdc33f10b9781dfaf419cb50d88e1335/third_party/CMakeLists.txt#L59
+#   - https://github.com/libsdl-org/libjxl/blob/19cfa74afdc33f10b9781dfaf419cb50d88e1335/third_party/CMakeLists.txt#L72
+record_variable_state(BUILD_TESTING)
+
 block(SCOPE_FOR VARIABLES PROPAGATE
     # find_package standard
     SDL2_image_FOUND
@@ -87,3 +106,9 @@ block(SCOPE_FOR VARIABLES PROPAGATE
   fetch_if_not_found(SDL2_image "${fp_options}" "${fc_options}")
 
 endblock()
+
+# Using default docstring from CTest.cmake option(BUILD_TESTING) call, see:
+#   - https://github.com/Kitware/CMake/blob/v3.31.0/Modules/CTest.cmake#L50
+restore_variable_state(BUILD_TESTING
+  TYPE BOOL
+  DOCSTRING "Build the testing tree.")

@@ -15,29 +15,19 @@ if(NOT COMMAND record_variable_state OR
   include(RecordVariableState)
 endif()
 
-# In practice, when configuring SDL_mixer with FetchContent, it will set
-#   BUILD_TESTING in the parent project's cache, rather than its own
-#   subbuild cache, which can impact the parent project's calls to
-#   `include(CTest)` later in the current config or on subsequent configs.
-# To prevent this, we record the current project's state of the BUILD_TESTING
-#   variable, and restore it at the end of the fetching process.
-# The problem has been isolated to SDL_mixer's submodule dependency WavPack
-#   and its call to `cmake_dependent_option(BUILD_TESTING`. An alternative
-#   solution would be to simply set SDL2MIXER_WAVPACK to OFF before the
-#   SDL_mixer config.
-# - https://github.com/libsdl-org/SDL_mixer/tree/release-2.8.1/external
-# - https://github.com/libsdl-org/WavPack/blob/02efabe73e1ac743ec35885f2b620cec3e996ca5/CMakeLists.txt#L145
-# - https://cmake.org/cmake/help/latest/module/CMakeDependentOption.html
-#
-# TBD SDL_image (v2.8.0 for example) has calls to set(BUILD_TESTING CACHE FORCE)
-#   in its submodule libjxl, but somehow does not cause the same problem. Does
-#   the problem then lie with option(), as cmake_dependent_option calls both
-#   option() and set(CACHE FORCE), or is it a more subtle interaction with
-#   FetchContent?
-#   - https://github.com/libsdl-org/SDL_image/blob/release-2.8.0/CMakeLists.txt#L488
-#   - https://github.com/libsdl-org/SDL_image/tree/release-2.8.0/external
-#   - https://github.com/libsdl-org/libjxl/blob/19cfa74afdc33f10b9781dfaf419cb50d88e1335/third_party/CMakeLists.txt#L59
-#   - https://github.com/libsdl-org/libjxl/blob/19cfa74afdc33f10b9781dfaf419cb50d88e1335/third_party/CMakeLists.txt#L72
+# In theory, dependencies configured with FetchContent should maintain their own
+#   subbuild cache. In practice, sometimes calls to option() or set(CACHE) will
+#   set variables in the parent project's cache, which can cause problems. Here
+#   it is SDL_mixer's submodule dependency WavPack and its call to
+#   cmake_dependent_option(BUILD_TESTING), which can cache BUILD_TESTING=OFF in
+#   the parent cache, affecting later calls to include(CTest) in sibling
+#   subprojects or on subsequent configs. To prevent this, we record the current
+#   project's state of the BUILD_TESTING variable, and restore it at the end of
+#   the fetching process. An alternative solution would be to simply set
+#   SDL2MIXER_WAVPACK to OFF before the SDL_mixer config.
+#   - https://github.com/libsdl-org/SDL_mixer/tree/release-2.8.1/external
+#   - https://github.com/libsdl-org/WavPack/blob/02efabe73e1ac743ec35885f2b620cec3e996ca5/CMakeLists.txt#L145
+#   - https://cmake.org/cmake/help/latest/module/CMakeDependentOption.html
 record_variable_state(BUILD_TESTING)
 
 block(SCOPE_FOR VARIABLES PROPAGATE
