@@ -24,6 +24,8 @@ block(SCOPE_FOR VARIABLES PROPAGATE
     catch2_POPULATED
     catch2_SOURCE_DIR
     catch2_BINARY_DIR
+    # to add path of Catch.cmake (see below)
+    CMAKE_MODULE_PATH
   )
 
   # Using Catch2 v2.x:
