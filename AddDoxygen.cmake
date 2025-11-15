@@ -105,7 +105,8 @@ function(add_doxygen)
 
   # elective options
   set(DOXYGEN_GENERATE_HTML YES)
-  set(DOXYGEN_HTML_OUTPUT   doxygen_site)
+  set(DOXYGEN_HTML_INDEX_NUM_ENTRIES 1)  # all tree lists start fully collapsed
+  set(DOXYGEN_HTML_OUTPUT doxygen_site)
 
   if(NOT ${ARGS_UNSTYLED})
     if(doxygen-awesome-css_POPULATED)
