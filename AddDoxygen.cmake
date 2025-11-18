@@ -69,7 +69,8 @@ endif()
 #
 #   inputs   (list): source files and directories for which to generate
 #     documentation
-#   UNSTYLED (bool, optional): toggles use of plain Doxygen HTML/CSS
+#   UNSTYLED (bool, optional): toggles use of default Doxygen CSS
+#   EXTRACT_PRIVATE (bool, optional): toggles documentation of private class members
 #
 function(add_doxygen)
 
@@ -84,7 +85,7 @@ function(add_doxygen)
   ## parse and validate parameters
   ##
 
-  set(_options UNSTYLED)
+  set(_options UNSTYLED EXTRACT_PRIVATE)
   set(_single_value_args)
   set(_multi_value_args)
   cmake_parse_arguments("ARGS"
@@ -115,6 +116,11 @@ function(add_doxygen)
     set(DOXYGEN_PROJECT_BRIEF "${PROJECT_DESCRIPTION}")
   endif()
   set(DOXYGEN_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
+  if(ARGS_EXTRACT_PRIVATE)
+    set(DOXYGEN_EXTRACT_PRIVATE YES)
+  else()
+    set(DOXYGEN_EXTRACT_PRIVATE NO)
+  endif()
   set(DOXYGEN_RECURSIVE YES)
   list(APPEND DOXYGEN_EXCLUDE_PATTERNS
     "*/.git/*"
@@ -184,6 +190,11 @@ PROJECT_NAME           = "@DOXYGEN_PROJECT_NAME@"
 PROJECT_NUMBER         = @DOXYGEN_PROJECT_VERSION@
 PROJECT_BRIEF          = "@DOXYGEN_PROJECT_BRIEF@"
 OUTPUT_DIRECTORY       = @DOXYGEN_OUTPUT_DIRECTORY@
+
+#---------------------------------------------------------------------------
+# Build related configuration options
+#---------------------------------------------------------------------------
+EXTRACT_PRIVATE        = @DOXYGEN_EXTRACT_PRIVATE@
 
 #---------------------------------------------------------------------------
 # Configuration options related to the input files
