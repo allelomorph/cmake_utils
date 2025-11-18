@@ -12,11 +12,16 @@ if(NOT COMMAND FetchContent_Declare OR
   include(FetchContent)
 endif()
 
-find_package(Doxygen)
-
-find_program(GRAPHVIZ_DOT_BINARY
-  dot
-)
+if(NOT DOXYGEN_FOUND)
+  # Note: cmake find module does not seem to test Doxygen_FIND_REQUIRED_dot, see:
+  #  - https://cmake.org/cmake/help/v3.28/command/find_package.html#package-file-interface-variables
+  #  - https://github.com/Kitware/CMake/blob/v3.28.0/Modules/FindDoxygen.cmake
+  #  but does define:
+  #   - DOXYGEN_DOT_EXECUTABLE (deprecated, use target Doxygen::dot instead)
+  #   - DOXYGEN_DOT_FOUND (deprecated)
+  find_package(Doxygen REQUIRED
+    COMPONENTS dot)
+endif()
 
 if(NOT doxygen-awesome-css_POPULATED)
   FetchContent_Declare(doxygen-awesome-css
@@ -117,20 +122,21 @@ function(add_doxygen)
     if(doxygen-awesome-css_POPULATED)
       set(DOXYGEN_HTML_EXTRA_STYLESHEET
         ${doxygen-awesome-css_SOURCE_DIR}/doxygen-awesome.css)
-      # sidebar
-      set(DOXYGEN_GENERATE_TREEVIEW     YES)
-      if(GRAPHVIZ_DOT_BINARY)
-        # https://jothepro.github.io/doxygen-awesome-css/md_docs_2tricks.html
+      set(DOXYGEN_GENERATE_TREEVIEW     YES) # sidebar
+      # Not using deprecated DOXYGEN_HAVE_DOT, see above note on FindDoxygen.cmake
+      if(TARGET Doxygen::dot)
+        # Settings from:
+        #   - https://jothepro.github.io/doxygen-awesome-css/md_docs_2tricks.html
         set(DOXYGEN_HAVE_DOT            YES)
         set(DOXYGEN_DOT_IMAGE_FORMAT    svg)
         #set(DOXYGEN_DOT_TRANSPARENT    YES) # not doxygen config var as of v1.9.8
       else()
-        message(WARNING "add_doxygen(${ARGN}): cannot generate documentation \
-graphs without Graphviz dot installed")
+        message(WARNING "add_doxygen(${ARGN}): cannot generate documentation "
+          "graphs without Graphviz dot installed")
       endif()
     else()
-      message(WARNING "add_doxygen(${ARGN}): cannot style documentation without \
-doxygen-awesome-css")
+      message(WARNING "add_doxygen(${ARGN}): cannot style documentation without "
+        "doxygen-awesome-css")
     endif()
   endif()
 
