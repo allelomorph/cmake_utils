@@ -56,8 +56,9 @@ endif()
 #     the Doxyfile INPUT variable. Ideally this script should be bundled with a
 #     companion Doxyfile.in template.
 #
-#   input_dir   (string): source dir for which to generate documentation
-#   UNSTYLED    (bool, optional): toggles use of plain Doxygen HTML/CSS
+#   inputs   (list): source files and directories for which to generate
+#     documentation
+#   UNSTYLED (bool, optional): toggles use of plain Doxygen HTML/CSS
 #
 function(add_doxygen)
 
@@ -69,16 +70,20 @@ function(add_doxygen)
   ## parse and validate parameters
   ##
 
-  set(options
-    UNSTYLED
-  )
-  set(single_value_args
-  )
-  set(multi_value_args
-  )
+  set(_options UNSTYLED)
+  set(_single_value_args)
+  set(_multi_value_args)
   cmake_parse_arguments("ARGS"
-    "${options}" "${single_value_args}" "${multi_value_args}" ${ARGN}
+    "${_options}" "${_single_value_args}" "${_multi_value_args}" ${ARGN}
   )
+  set(inputs ${ARGS_UNPARSED_ARGUMENTS})
+  list(REMOVE_DUPLICATES inputs)
+  if(NOT DEFINED DOXYGEN_INPUT)
+    set(DOXYGEN_INPUT ${inputs})
+  else()
+    list(APPEND DOXYGEN_INPUT ${inputs})
+    list(REMOVE_DUPLICATES DOXYGEN_INPUT)
+  endif()
 
   ##
   ## configure Doxyfile to set Doxygen settings
