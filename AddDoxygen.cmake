@@ -69,6 +69,7 @@ endif()
 #
 #   inputs   (list): source files and directories for which to generate
 #     documentation
+#   EXCLUDE (list, optional): source files and directories to exclude from inputs
 #   UNSTYLED (bool, optional): toggles use of default Doxygen CSS
 #   EXTRACT_PRIVATE (bool, optional): toggles documentation of private class members
 #
@@ -87,7 +88,7 @@ function(add_doxygen)
 
   set(_options UNSTYLED EXTRACT_PRIVATE)
   set(_single_value_args)
-  set(_multi_value_args)
+  set(_multi_value_args EXCLUDE)
   cmake_parse_arguments("ARGS"
     "${_options}" "${_single_value_args}" "${_multi_value_args}" ${ARGN}
   )
@@ -99,6 +100,9 @@ function(add_doxygen)
     list(APPEND DOXYGEN_INPUT ${inputs})
     list(REMOVE_DUPLICATES DOXYGEN_INPUT)
   endif()
+  set(DOXYGEN_EXCLUDE ${ARGS_EXCLUDE})
+  list(REMOVE_DUPLICATES DOXYGEN_EXCLUDE)
+  list(JOIN DOXYGEN_EXCLUDE " " DOXYGEN_EXCLUDE)
 
   ##
   ## configure Doxyfile to set Doxygen settings
