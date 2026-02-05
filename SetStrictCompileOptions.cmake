@@ -9,21 +9,16 @@ include_guard(DIRECTORY)
 #   target (string): target to modify
 #
 macro(set_strict_compile_options target)
-  if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  if(${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
     target_compile_options(${target} PRIVATE
       /W4 /bigobj
-      )
+    )
   endif()
 
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    target_compile_options(${target} PRIVATE
-      -Wall -Wextra -Wpedantic
-      )
-  endif()
-
-  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" OR
+      ${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     target_compile_options(${target} PRIVATE
       -Wall -Wextra -Wpedantic -Werror
-      )
+    )
   endif()
 endmacro()
