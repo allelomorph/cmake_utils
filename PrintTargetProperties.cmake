@@ -241,15 +241,25 @@ function(print_target_properties target)
 
   if(NOT whitelist_only)
     # populate "<LANG>" infix with any defined target languages
-    get_target_property(target_lang ${target} LANGUAGE)
-    if(target_lang)
+    get_target_property(target_sources ${target} SOURCES)
+    get_target_property(target_source_dir ${target} SOURCE_DIR)
+    foreach(target_source IN LISTS target_sources)
+      get_source_file_property(source_lang "${target_source}"
+        DIRECTORY "${target_source_dir}"
+        LANGUAGE
+      )
+      if(NOT ${source_lang} IN_LIST target_langs)
+        list(APPEND target_langs ${source_lang})
+      endif()
+    endforeach()
+    foreach(target_lang IN LISTS target_langs)
       foreach(lang_prop IN LISTS lang_properties)
         if(NOT ${lang_prop} IN_LIST CMAKE_UNREADABLE_PROPERTIES)
-          string(REPLACE "<LANG>" "${target_lang}" infixed_prop "${lang_prop}")
+          string(REPLACE "<LANG>" ${target_lang} infixed_prop ${lang_prop})
           list(APPEND properties ${infixed_prop})
         endif()
       endforeach()
-    endif()
+    endforeach()
 
     # populate "<NAME>" infix with target name
     get_target_property(target_name ${target} NAME)
