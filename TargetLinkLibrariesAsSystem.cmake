@@ -53,7 +53,8 @@ function(target_link_libraries_as_system target)
           ${lib_interface_include_dirs})
       endif()
     endif()
-    # TBD https://stackoverflow.com/questions/51396608/what-is-default-target-link-libraries-privacy-setting
+    # TBD problems may arise from mixing signatures of `target_link_libraries`,
+    #   see: - https://stackoverflow.com/a/51404894
     if(DEFINED scope)
       target_link_libraries(${target} ${scope} ${lib})
     else()
