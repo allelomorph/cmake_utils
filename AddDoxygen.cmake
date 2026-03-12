@@ -147,8 +147,9 @@ function(add_doxygen)
       set(DOXYGEN_HTML_EXTRA_STYLESHEET
         ${doxygen-awesome-css_SOURCE_DIR}/doxygen-awesome.css)
       set(DOXYGEN_GENERATE_TREEVIEW     YES) # sidebar
-      # Not using deprecated DOXYGEN_HAVE_DOT, see above note on FindDoxygen.cmake
-      if(TARGET Doxygen::dot)
+      # Doxygen_dot_FOUND set by FindDoxygen.cmake, see:
+      #   - https://github.com/Kitware/CMake/blob/v3.28.0/Modules/FindDoxygen.cmake#L672
+      if(Doxygen_dot_FOUND)
         # Settings from:
         #   - https://jothepro.github.io/doxygen-awesome-css/md_docs_2tricks.html
         set(DOXYGEN_HAVE_DOT            YES)
