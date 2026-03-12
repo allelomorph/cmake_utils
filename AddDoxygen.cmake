@@ -35,11 +35,6 @@ if(NOT doxygen-awesome-css_POPULATED)
   FetchContent_MakeAvailable(doxygen-awesome-css)
 endif()
 
-if(NOT DOXYGEN_FOUND)
-  message(FATAL_ERROR
-    "Doxygen not found; required to build HTML documentation")
-endif()
-
 # see: https://www.doxygen.nl/manual/markdown.html
 if(DOXYGEN_VERSION VERSION_LESS "1.8.0")
   message(WARNING
