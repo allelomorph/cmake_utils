@@ -62,11 +62,33 @@ endif()
 #       - more Doxygen option flexibility
 #       - per-target documentation settings (can only run once per project)
 #
-#   inputs   (list): source files and directories for which to generate
-#     documentation
-#   EXCLUDE (list, optional): source files and directories to exclude from inputs
-#   UNSTYLED (bool, optional): toggles use of default Doxygen CSS
-#   EXTRACT_PRIVATE (bool, optional): toggles documentation of private class members
+#   inputs                (list):
+#       source files and directories for which to generate documentation
+#   EXCLUDE               (list, optional):
+#       source files and directories to exclude from inputs
+#   UNSTYLED              (option):
+#       enables use of default Doxygen CSS
+#   EXTRACT_ALL           (option):
+#       enables documentation of all undocumented entities, with exceptions for
+#       private or static file members
+#   EXTRACT_PRIVATE       (option):
+#       enables documentation of private class members
+#   EXTRACT_PRIV_VIRTUAL  (option):
+#       enables documentation of private virtual methods
+#   EXTRACT_PACKAGE       (option):
+#       enables documentation of members with package or internal scope
+#   EXTRACT_STATIC        (option):
+#       enables documentation of static file members
+#   NO_EXTRACT_LOCAL_CLASSES (option):
+#       diables documentation of classes/structs defined locally in source files
+#   EXTRACT_ANON_NSPACES  (option):
+#       enables documentation of members of anonymous namespaces
+#   CALL_GRAPH            (option):
+#       enables generation of call dependency graphs for global functions and
+#       class methods (requires `dot`, may greatly inrease doc generation time)
+#   CALLER_GRAPH          (option):
+#       enables generation of caller dependency graphs for global functions and
+#       class methods (requires `dot`, may greatly increase doc generation time)
 #
 function(add_doxygen)
 
@@ -81,7 +103,18 @@ function(add_doxygen)
   ## parse and validate parameters
   ##
 
-  set(_options UNSTYLED EXTRACT_PRIVATE)
+  set(_options
+    UNSTYLED
+    EXTRACT_ALL
+    EXTRACT_PRIVATE
+    EXTRACT_PRIV_VIRTUAL
+    EXTRACT_PACKAGE
+    EXTRACT_STATIC
+    NO_EXTRACT_LOCAL_CLASSES
+    EXTRACT_ANON_NSPACES
+    CALL_GRAPH
+    CALLER_GRAPH
+  )
   set(_single_value_args)
   set(_multi_value_args EXCLUDE)
   cmake_parse_arguments("ARGS"
@@ -136,11 +169,60 @@ function(add_doxygen)
   set(DOXYGEN_GENERATE_LATEX NO)
   set(DOXYGEN_DOT_MULTI_TARGETS YES)
 
-  # elective options
+  # preset elective options
   set(DOXYGEN_EXCLUDE_SYMLINKS NO)       # Doxygen default
   set(DOXYGEN_GENERATE_HTML YES)         # Doxygen default, needed for most other HTML_* options
   set(DOXYGEN_HTML_INDEX_NUM_ENTRIES 1)  # all tree lists start fully collapsed
   set(DOXYGEN_HTML_OUTPUT doxygen_site)  # HTML output directory
+
+  # elective options from params
+  #   (cmake_parse_arguments sets to TRUE/FALSE, need to be YES/NO for Doxyfile)
+  if(ARGS_EXTRACT_ALL)
+    set(DOXYGEN_EXTRACT_ALL YES)
+  else()
+    set(DOXYGEN_EXTRACT_ALL NO)
+  endif()
+  if(ARGS_EXTRACT_PRIVATE)
+    set(DOXYGEN_EXTRACT_PRIVATE YES)
+  else()
+    set(DOXYGEN_EXTRACT_PRIVATE NO)
+  endif()
+  if(ARGS_EXTRACT_PRIV_VIRTUAL)
+    set(DOXYGEN_EXTRACT_PRIV_VIRTUAL YES)
+  else()
+    set(DOXYGEN_EXTRACT_PRIV_VIRTUAL NO)
+  endif()
+  if(ARGS_EXTRACT_PACKAGE)
+    set(DOXYGEN_EXTRACT_PACKAGE YES)
+  else()
+    set(DOXYGEN_EXTRACT_PACKAGE NO)
+  endif()
+  if(ARGS_EXTRACT_STATIC)
+    set(DOXYGEN_EXTRACT_STATIC YES)
+  else()
+    set(DOXYGEN_EXTRACT_STATIC NO)
+  endif()
+  # EXTRACT_LOCAL_CLASSES is only Doxygen EXTRACT_* that defaults to YES
+  if(ARGS_NO_EXTRACT_LOCAL_CLASSES)
+    set(DOXYGEN_EXTRACT_LOCAL_CLASSES NO)
+  else()
+    set(DOXYGEN_EXTRACT_LOCAL_CLASSES YES)
+  endif()
+  if(ARGS_EXTRACT_ANON_NSPACES)
+    set(DOXYGEN_EXTRACT_ANON_NSPACES YES)
+  else()
+    set(DOXYGEN_EXTRACT_ANON_NSPACES NO)
+  endif()
+  if(ARGS_CALL_GRAPH)
+    set(DOXYGEN_CALL_GRAPH YES)
+  else()
+    set(DOXYGEN_CALL_GRAPH NO)
+  endif()
+  if(ARGS_CALLER_GRAPH)
+    set(DOXYGEN_CALLER_GRAPH YES)
+  else()
+    set(DOXYGEN_CALLER_GRAPH NO)
+  endif()
 
   if(NOT ${ARGS_UNSTYLED})
     if(doxygen-awesome-css_POPULATED)
@@ -195,7 +277,13 @@ OUTPUT_DIRECTORY       = @DOXYGEN_OUTPUT_DIRECTORY@
 #---------------------------------------------------------------------------
 # Build related configuration options
 #---------------------------------------------------------------------------
+EXTRACT_ALL            = @DOXYGEN_EXTRACT_ALL@
 EXTRACT_PRIVATE        = @DOXYGEN_EXTRACT_PRIVATE@
+EXTRACT_PRIV_VIRTUAL   = @DOXYGEN_EXTRACT_PRIV_VIRTUAL@
+EXTRACT_PACKAGE        = @DOXYGEN_EXTRACT_PACKAGE@
+EXTRACT_STATIC         = @DOXYGEN_EXTRACT_STATIC@
+EXTRACT_LOCAL_CLASSES  = @DOXYGEN_EXTRACT_LOCAL_CLASSES@
+EXTRACT_ANON_NSPACES   = @DOXYGEN_EXTRACT_ANON_NSPACES@
 
 #---------------------------------------------------------------------------
 # Configuration options related to the input files
@@ -227,6 +315,8 @@ GENERATE_LATEX         = @DOXYGEN_GENERATE_LATEX@
 # Configuration options related to diagram generator tools
 #---------------------------------------------------------------------------
 HAVE_DOT               = @DOXYGEN_HAVE_DOT@
+CALL_GRAPH             = @DOXYGEN_CALL_GRAPH@
+CALLER_GRAPH           = @DOXYGEN_CALLER_GRAPH@
 DOT_IMAGE_FORMAT       = @DOXYGEN_DOT_IMAGE_FORMAT@
 DOT_MULTI_TARGETS      = @DOXYGEN_DOT_MULTI_TARGETS@
 ]])
