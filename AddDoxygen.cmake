@@ -146,7 +146,9 @@ function(add_doxygen)
     if(doxygen-awesome-css_POPULATED)
       set(DOXYGEN_HTML_EXTRA_STYLESHEET
         ${doxygen-awesome-css_SOURCE_DIR}/doxygen-awesome.css)
-      set(DOXYGEN_GENERATE_TREEVIEW     YES) # sidebar
+      set(DOXYGEN_GENERATE_TREEVIEW YES) # sidebar
+      set(DOXYGEN_DISABLE_INDEX     YES) # forego condensed index tabs in favor of sidebar
+      set(DOXYGEN_FULL_SIDEBAR      YES) # sidebar extends to full height of window
       # Doxygen_dot_FOUND set by FindDoxygen.cmake, see:
       #   - https://github.com/Kitware/CMake/blob/v3.28.0/Modules/FindDoxygen.cmake#L672
       if(Doxygen_dot_FOUND)
@@ -212,7 +214,9 @@ HTML_OUTPUT            = @DOXYGEN_HTML_OUTPUT@
 HTML_STYLESHEET        = @DOXYGEN_STYLESHEET@
 HTML_EXTRA_STYLESHEET  = @DOXYGEN_HTML_EXTRA_STYLESHEET@
 HTML_INDEX_NUM_ENTRIES = @DOXYGEN_HTML_INDEX_NUM_ENTRIES@
+DISABLE_INDEX          = @DOXYGEN_DISABLE_INDEX@
 GENERATE_TREEVIEW      = @DOXYGEN_GENERATE_TREEVIEW@
+FULL_SIDEBAR           = @DOXYGEN_FULL_SIDEBAR@
 
 #---------------------------------------------------------------------------
 # Configuration options related to the LaTeX output
