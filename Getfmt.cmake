@@ -10,8 +10,9 @@ if(NOT fmt_POPULATED)
   endif()
   FetchContent_Declare(fmt
     GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-    GIT_TAG        11.2.0
+    GIT_TAG        12.2.0
     GIT_SHALLOW
   )
   FetchContent_MakeAvailable(fmt)
+  # link to fmt::fmt target
 endif()
