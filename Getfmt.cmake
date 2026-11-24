@@ -8,11 +8,13 @@ if(NOT fmt_POPULATED)
     )
     include(FetchContent)
   endif()
+  # fmt will build static library by default; set BUILD_SHARED_LIBS=ON to build
+  #   linked libraries instead
   FetchContent_Declare(fmt
     GIT_REPOSITORY https://github.com/fmtlib/fmt.git
     GIT_TAG        12.2.0
     GIT_SHALLOW
   )
   FetchContent_MakeAvailable(fmt)
-  # link to fmt::fmt target
+  # fmt::fmt should also be available as alias to fmt target
 endif()
